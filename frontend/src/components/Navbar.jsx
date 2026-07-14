@@ -22,7 +22,7 @@ function ThemeToggle() {
     <button
       onClick={toggleTheme}
       aria-label="Toggle dark mode"
-      className="w-8 h-8 flex items-center justify-center rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+      className="w-8 h-8 flex items-center justify-center text-ink-soft hover:bg-paper-warm dark:hover:bg-board-line transition-colors"
     >
       {theme === 'dark' ? '☀️' : '🌙'}
     </button>
@@ -52,7 +52,7 @@ function UserMenu({ user, onLogout }) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-semibold flex items-center justify-center hover:opacity-90 transition-opacity"
+        className="w-8 h-8 rounded-full border border-ink dark:border-paper-line text-ink dark:text-paper text-xs font-mono font-semibold flex items-center justify-center hover:bg-paper-warm dark:hover:bg-board-line transition-colors"
         aria-label="Account menu"
       >
         {initials}
@@ -60,19 +60,19 @@ function UserMenu({ user, onLogout }) {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden z-50"
+            className="absolute right-0 mt-2 w-48 bg-white dark:bg-board border border-paper-line dark:border-board-line overflow-hidden z-50"
           >
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{user.name}</p>
-              <p className="text-xs text-slate-400 capitalize">{user.role}</p>
+            <div className="px-4 py-3 border-b border-paper-line dark:border-board-line">
+              <p className="text-sm font-medium text-ink dark:text-paper truncate">{user.name}</p>
+              <p className="text-xs text-ink-soft uppercase tracking-wide font-mono">{user.role}</p>
             </div>
             <button
               onClick={onLogout}
-              className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+              className="w-full text-left px-4 py-2.5 text-sm text-stamp-red hover:bg-paper-warm dark:hover:bg-board-line"
             >
               Log out
             </button>
@@ -97,12 +97,12 @@ export default function Navbar() {
   const links = user?.role === 'admin' ? ADMIN_LINKS : user?.role === 'citizen' ? CITIZEN_LINKS : [];
 
   return (
-    <nav className="sticky top-0 z-40 glass-surface border-b border-slate-200/80 dark:border-slate-800">
+    <nav className="sticky top-0 z-40 bg-paper dark:bg-board border-b border-paper-line dark:border-board-line">
       <div className="flex items-center justify-between px-4 sm:px-6 py-3">
         <div className="flex items-center gap-6">
           <Link
             to={user?.role === 'admin' ? '/admin/dashboard' : '/dashboard'}
-            className="font-semibold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent"
+            className="font-display font-bold text-xl uppercase tracking-wide text-ink dark:text-paper"
           >
             Civic AI
           </Link>
@@ -115,10 +115,10 @@ export default function Navbar() {
                   <Link
                     key={link.to}
                     to={link.to}
-                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                    className={`px-3 py-1.5 text-sm border-b-2 transition-colors ${
                       active
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        ? 'border-brass text-ink dark:text-paper font-medium'
+                        : 'border-transparent text-ink-soft hover:text-ink dark:hover:text-paper'
                     }`}
                   >
                     {link.label}
@@ -134,7 +134,7 @@ export default function Navbar() {
             <>
               <button
                 onClick={() => setMobileOpen((o) => !o)}
-                className="md:hidden w-8 h-8 flex items-center justify-center rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="md:hidden w-8 h-8 flex items-center justify-center text-ink-soft hover:bg-paper-warm dark:hover:bg-board-line"
                 aria-label="Toggle menu"
               >
                 {mobileOpen ? '✕' : '☰'}
@@ -154,7 +154,7 @@ export default function Navbar() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden overflow-hidden border-t border-slate-200/80 dark:border-slate-800"
+            className="md:hidden overflow-hidden border-t border-paper-line dark:border-board-line"
           >
             <div className="flex flex-col p-2">
               {links.map((link) => (
@@ -162,7 +162,7 @@ export default function Navbar() {
                   key={link.to}
                   to={link.to}
                   onClick={() => setMobileOpen(false)}
-                  className="px-3 py-2 rounded-md text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="px-3 py-2 text-sm text-ink-soft hover:bg-paper-warm dark:hover:bg-board-line"
                 >
                   {link.label}
                 </Link>

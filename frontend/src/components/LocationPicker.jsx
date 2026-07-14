@@ -41,7 +41,7 @@ function LocateControl({ onLocate, disabled }) {
       type="button"
       onClick={handleClick}
       disabled={disabled || locating}
-      className="absolute top-2 right-2 z-[1000] px-2.5 py-1 text-xs font-medium bg-white dark:bg-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm hover:border-slate-400 dark:hover:border-slate-500 disabled:opacity-50"
+      className="absolute top-2 right-2 z-[1000] px-2.5 py-1 text-xs font-medium bg-white dark:bg-board text-ink dark:text-paper border border-paper-line dark:border-board-line hover:border-brass disabled:opacity-50"
     >
       {locating ? 'Locating…' : '📍 Use my location'}
     </button>
@@ -68,7 +68,7 @@ export default function LocationPicker({ latitude, longitude, onLocationChange, 
 
   return (
     <div>
-      <div className="relative rounded-md overflow-hidden border border-slate-300 dark:border-slate-600" style={{ height: 260 }}>
+      <div className="relative overflow-hidden border border-paper-line dark:border-board-line" style={{ height: 260 }}>
         <MapContainer
           center={position || DEFAULT_CENTER}
           zoom={position ? SELECTED_ZOOM : DEFAULT_ZOOM}
@@ -83,7 +83,7 @@ export default function LocationPicker({ latitude, longitude, onLocationChange, 
           {position && <Marker position={position} />}
         </MapContainer>
       </div>
-      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+      <p className="text-xs text-ink-soft mt-1">
         {geocoding
           ? 'Looking up address…'
           : position

@@ -5,7 +5,7 @@ export default function MonthlyTrendChart({ data, height = 240 }) {
   const { ink, tooltipStyle, sequentialBlue, isDark } = useChartTheme();
 
   if (!data || data.length === 0) {
-    return <p className="text-sm text-slate-400 dark:text-slate-500 py-8 text-center">No data yet.</p>;
+    return <p className="text-sm text-ink-soft py-8 text-center">No data yet.</p>;
   }
 
   return (
@@ -25,7 +25,7 @@ export default function MonthlyTrendChart({ data, height = 240 }) {
           dataKey="count"
           stroke={sequentialBlue}
           strokeWidth={2}
-          dot={{ r: 4, fill: sequentialBlue, stroke: isDark ? '#1a1a19' : '#fcfcfb', strokeWidth: 2 }}
+          dot={{ r: 4, fill: sequentialBlue, stroke: isDark ? '#14171c' : '#ffffff', strokeWidth: 2 }}
           activeDot={{ r: 5 }}
         />
       </LineChart>

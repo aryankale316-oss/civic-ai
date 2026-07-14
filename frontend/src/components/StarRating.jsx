@@ -10,7 +10,7 @@ export default function StarRating({ value, onChange, readOnly = false, size = '
           disabled={readOnly}
           onClick={() => onChange?.(star)}
           className={`leading-none ${readOnly ? 'cursor-default' : 'cursor-pointer hover:scale-110 transition-transform'} ${
-            star <= value ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'
+            star <= value ? 'text-brass' : 'text-paper-line dark:text-board-line'
           }`}
           aria-label={`${star} star${star > 1 ? 's' : ''}`}
         >

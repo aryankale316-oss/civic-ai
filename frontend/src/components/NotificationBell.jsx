@@ -37,12 +37,12 @@ export default function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="relative w-8 h-8 flex items-center justify-center rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        className="relative w-8 h-8 flex items-center justify-center text-ink-soft hover:bg-paper-warm dark:hover:bg-board-line transition-colors"
         aria-label="Notifications"
       >
         🔔
         {unreadCount > 0 && (
-          <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-600 text-white text-[10px] leading-none">
+          <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-stamp-red text-white text-[10px] leading-none font-mono">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -51,34 +51,35 @@ export default function NotificationBell() {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto"
+            className="absolute right-0 mt-2 w-80 bg-white dark:bg-board border border-paper-line dark:border-board-line z-50 max-h-96 overflow-y-auto"
           >
-            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-700">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Notifications</span>
+            <div className="flex items-center justify-between px-3 py-2 border-b border-paper-line dark:border-board-line">
+              <span className="text-sm font-medium text-ink dark:text-paper">Notifications</span>
               {unreadCount > 0 && (
-                <button onClick={markAllRead} className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
+                <button onClick={markAllRead} className="text-xs text-ink-soft hover:text-ink dark:hover:text-paper">
                   Mark all read
                 </button>
               )}
             </div>
             {notifications.length === 0 ? (
-              <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-6">No notifications yet.</p>
+              <p className="text-sm text-ink-soft text-center py-6">No notifications yet.</p>
             ) : (
               notifications.map((n) => (
                 <button
                   key={n.id}
                   onClick={() => handleClick(n)}
-                  className={`w-full text-left px-3 py-2 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/40 ${
-                    n.is_read ? '' : 'bg-blue-50 dark:bg-blue-500/10'
+                  className={`relative w-full text-left px-3 py-2 border-b border-paper-line dark:border-board-line hover:bg-paper-warm dark:hover:bg-board-line/50 ${
+                    n.is_read ? '' : 'bg-paper-warm/60 dark:bg-board-line/30'
                   }`}
                 >
-                  <p className="text-sm text-slate-900 dark:text-slate-100">{n.title}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{n.message}</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{timeAgo(n.created_at)}</p>
+                  {!n.is_read && <span className="absolute left-1 top-3 w-1.5 h-1.5 rounded-full bg-stamp-red" />}
+                  <p className="text-sm text-ink dark:text-paper pl-2">{n.title}</p>
+                  <p className="text-xs text-ink-soft pl-2">{n.message}</p>
+                  <p className="text-[10px] font-mono text-ink-soft mt-0.5 pl-2">{timeAgo(n.created_at)}</p>
                 </button>
               ))
             )}

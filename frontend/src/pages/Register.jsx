@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext';
 import AuthLayout from '../components/AuthLayout';
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 transition-shadow';
+  'w-full px-3 py-2 border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper focus:outline-none focus:ring-2 focus:ring-brass';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -39,12 +39,12 @@ export default function Register() {
   return (
     <AuthLayout title="Citizen Registration" subtitle="Create an account to submit complaints">
       <form onSubmit={handleSubmit}>
-        {error && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>}
+        {error && <p className="text-sm text-stamp-red mb-4">{error}</p>}
 
-        <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">Name</label>
+        <label className="block text-sm text-ink-soft mb-1">Name</label>
         <input required value={name} onChange={(e) => setName(e.target.value)} className={`${INPUT_CLASS} mb-4`} />
 
-        <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">Email</label>
+        <label className="block text-sm text-ink-soft mb-1">Email</label>
         <input
           type="email"
           required
@@ -53,7 +53,7 @@ export default function Register() {
           className={`${INPUT_CLASS} mb-4`}
         />
 
-        <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">Password</label>
+        <label className="block text-sm text-ink-soft mb-1">Password</label>
         <input
           type="password"
           required
@@ -66,13 +66,13 @@ export default function Register() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 shadow-sm"
+          className="w-full py-2 bg-ink text-paper hover:bg-ink/90 transition-colors disabled:opacity-50"
         >
           {loading ? 'Creating account...' : 'Register'}
         </button>
 
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-4 text-center">
-          Already have an account? <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:underline">Log in</Link>
+        <p className="text-sm text-ink-soft mt-4 text-center">
+          Already have an account? <Link to="/login" className="text-ink dark:text-paper underline hover:text-brass">Log in</Link>
         </p>
       </form>
     </AuthLayout>

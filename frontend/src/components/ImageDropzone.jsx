@@ -75,18 +75,18 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => !disabled && inputRef.current?.click()}
-        className={`flex flex-col items-center justify-center gap-1 border-2 border-dashed rounded-md px-4 py-6 text-center cursor-pointer transition-colors ${
+        className={`flex flex-col items-center justify-center gap-1 border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${
           disabled
-            ? 'opacity-50 cursor-not-allowed border-slate-200 dark:border-slate-700'
+            ? 'opacity-50 cursor-not-allowed border-paper-line dark:border-board-line'
             : isDragging
-            ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-500/10'
-            : 'border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
+            ? 'border-brass bg-paper-warm dark:bg-board-line'
+            : 'border-paper-line dark:border-board-line hover:border-brass'
         }`}
       >
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          <span className="font-medium text-slate-900 dark:text-slate-100">Click to upload</span> or drag and drop
+        <p className="text-sm text-ink-soft">
+          <span className="font-medium text-ink dark:text-paper">Click to upload</span> or drag and drop
         </p>
-        <p className="text-xs text-slate-400 dark:text-slate-500">JPEG, PNG, WEBP or GIF, up to 5MB each (max {maxFiles})</p>
+        <p className="text-xs text-ink-soft">JPEG, PNG, WEBP or GIF, up to 5MB each (max {maxFiles})</p>
         <input
           ref={inputRef}
           type="file"
@@ -101,7 +101,7 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
         />
       </div>
 
-      {error && <p className="text-xs text-red-600 dark:text-red-400 mt-2">{error}</p>}
+      {error && <p className="text-xs text-stamp-red mt-2">{error}</p>}
 
       {files.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-3">
@@ -110,7 +110,7 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
               <img
                 src={getPreviewUrl(file)}
                 alt={file.name}
-                className="w-full aspect-square object-cover rounded-md border border-slate-200 dark:border-slate-700"
+                className="w-full aspect-square object-cover border border-paper-line dark:border-board-line"
               />
               {!disabled && (
                 <button
@@ -119,7 +119,7 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
                     e.stopPropagation();
                     removeAt(index);
                   }}
-                  className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-slate-900 text-white text-xs leading-none opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-ink text-paper text-xs leading-none opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label={`Remove ${file.name}`}
                 >
                   ✕

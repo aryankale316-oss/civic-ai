@@ -6,7 +6,7 @@ export default function FloatingActionButton({ to, onClick, icon = '+', label })
     <motion.span
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      className="flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/30"
+      className="flex items-center gap-2 px-5 py-3 rounded-full bg-ink text-paper border border-ink"
     >
       <span className="text-lg leading-none">{icon}</span>
       {label && <span className="text-sm font-medium">{label}</span>}

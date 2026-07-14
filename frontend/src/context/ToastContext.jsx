@@ -4,9 +4,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 const ToastContext = createContext(null);
 
 const VARIANT_STYLES = {
-  success: 'border-green-200 dark:border-green-900 bg-white dark:bg-slate-800',
-  error: 'border-red-200 dark:border-red-900 bg-white dark:bg-slate-800',
-  info: 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800',
+  success: 'border-seal-green bg-white dark:bg-board',
+  error: 'border-stamp-red bg-white dark:bg-board',
+  info: 'border-paper-line dark:border-board-line bg-white dark:bg-board',
 };
 
 const VARIANT_ICONS = { success: '✅', error: '⚠️', info: 'ℹ️' };
@@ -45,13 +45,13 @@ export function ToastProvider({ children }) {
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border shadow-lg text-sm text-slate-800 dark:text-slate-100 ${VARIANT_STYLES[t.variant]}`}
+              className={`flex items-center gap-2 px-4 py-2.5 border text-sm text-ink dark:text-paper ${VARIANT_STYLES[t.variant]}`}
             >
               <span>{VARIANT_ICONS[t.variant]}</span>
               <span>{t.message}</span>
               <button
                 onClick={() => dismiss(t.id)}
-                className="ml-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                className="ml-2 text-ink-soft hover:text-ink dark:hover:text-paper"
                 aria-label="Dismiss"
               >
                 ✕

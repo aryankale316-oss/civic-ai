@@ -62,18 +62,18 @@ export default function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ duration: 0.2 }}
-            className="mb-3 w-80 sm:w-96 h-[28rem] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl flex flex-col overflow-hidden"
+            className="mb-3 w-80 sm:w-96 h-[28rem] bg-white dark:bg-board border border-paper-line dark:border-board-line flex flex-col overflow-hidden"
           >
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 text-white">
-              <span className="text-sm font-medium">Civic AI Assistant</span>
-              <button onClick={() => setOpen(false)} className="text-slate-300 hover:text-white text-sm" aria-label="Close chat">
+            <div className="flex items-center justify-between px-4 py-3 bg-ink text-paper">
+              <span className="text-sm font-display uppercase tracking-wide">Civic AI Assistant</span>
+              <button onClick={() => setOpen(false)} className="text-paper/70 hover:text-paper text-sm" aria-label="Close chat">
                 ✕
               </button>
             </div>
 
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
               {messages.length === 0 && !sending && (
-                <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-4">
+                <p className="text-xs text-ink-soft text-center mt-4">
                   Ask me to track a complaint, explain departments, or guide you through submitting one.
                 </p>
               )}
@@ -83,17 +83,17 @@ export default function ChatWidget() {
               {sending && <TypingIndicator />}
             </div>
 
-            <form onSubmit={handleSend} className="flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 p-2">
+            <form onSubmit={handleSend} className="flex items-center gap-2 border-t border-paper-line dark:border-board-line p-2">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1 px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                className="flex-1 px-3 py-1.5 text-sm border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper focus:outline-none focus:ring-2 focus:ring-brass placeholder:text-ink-soft"
               />
               <button
                 type="submit"
                 disabled={sending || !input.trim()}
-                className="px-3 py-1.5 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="px-3 py-1.5 text-sm bg-ink text-paper hover:bg-ink/90 transition-colors disabled:opacity-50"
               >
                 Send
               </button>
@@ -106,7 +106,7 @@ export default function ChatWidget() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen((o) => !o)}
-        className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-2xl shadow-lg shadow-blue-600/30 hover:opacity-90 flex items-center justify-center"
+        className="w-14 h-14 rounded-full bg-ink text-paper text-2xl hover:bg-ink/90 flex items-center justify-center"
         aria-label={open ? 'Close chat assistant' : 'Open chat assistant'}
       >
         {open ? '✕' : '💬'}

@@ -14,16 +14,16 @@ export default function VoiceInputButton({ onTranscriptChange, onListeningChange
         type="button"
         disabled={disabled}
         onClick={() => (isListening ? stop() : start())}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border transition-colors disabled:opacity-50 ${
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border transition-colors disabled:opacity-50 ${
           isListening
-            ? 'bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-700 text-red-700 dark:text-red-400'
-            : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500'
+            ? 'bg-paper-warm dark:bg-board-line border-stamp-red text-stamp-red'
+            : 'bg-white dark:bg-board border-paper-line dark:border-board-line text-ink-soft hover:border-brass'
         }`}
       >
-        <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-slate-400 dark:bg-slate-500'}`} />
+        <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-stamp-red animate-pulse' : 'bg-ink-soft'}`} />
         {isListening ? 'Listening… tap to stop' : 'Speak description'}
       </button>
-      {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+      {error && <span className="text-xs text-stamp-red">{error}</span>}
     </span>
   );
 }

@@ -5,7 +5,7 @@ export default function SentimentTrendChart({ data, height = 240 }) {
   const { ink, tooltipStyle } = useChartTheme();
 
   if (!data || data.length === 0) {
-    return <p className="text-sm text-slate-400 dark:text-slate-500 py-8 text-center">No data yet.</p>;
+    return <p className="text-sm text-ink-soft py-8 text-center">No data yet.</p>;
   }
 
   return (

@@ -5,7 +5,7 @@ export default function PriorityDistributionChart({ data, height = 200 }) {
   const { ink, tooltipStyle, cursorFill } = useChartTheme();
 
   if (!data || data.length === 0) {
-    return <p className="text-sm text-slate-400 dark:text-slate-500 py-8 text-center">No data yet.</p>;
+    return <p className="text-sm text-ink-soft py-8 text-center">No data yet.</p>;
   }
 
   const sorted = [...data].sort(

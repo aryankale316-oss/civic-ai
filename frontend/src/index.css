@@ -2,12 +2,55 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* "The Ticket" civic design system — see design brief. Paper/ink for light
+   mode, the split-flap board casing for dark mode. Radii are pulled in
+   small everywhere (2-4px) so every existing rounded-lg/xl/2xl utility in
+   the app reads as an official/paper material instead of a rounded
+   consumer app, with no per-component edits required. */
+@theme {
+  --color-paper: #eef0ea;
+  --color-paper-warm: #e7dfc6;
+  --color-paper-line: #d9d7c9;
+  --color-ink: #1c2b45;
+  --color-ink-soft: #5b6472;
+  --color-board: #14171c;
+  --color-board-line: #262b33;
+  --color-stamp-red: #b23a2e;
+  --color-seal-green: #3c7a5a;
+  --color-brass: #b8893e;
+  /* Not in the base palette — StatusFlap needs a 4th "in progress" tone
+     distinct from brass (received) and stamp-red (critical/rejected). */
+  --color-flap-amber: #c68a2e;
+
+  --font-display: "Barlow Condensed", ui-sans-serif, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, sans-serif;
+
+  --radius-xs: 2px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
+}
+
 body {
   margin: 0;
+  font-family: var(--font-sans);
 }
 
 html.dark {
   color-scheme: dark;
+  /* text-ink-soft/stamp-red/seal-green are used as body/status text
+     throughout without per-component dark: variants — their base hues only
+     clear ~3:1 against the board casing, short of WCAG AA's 4.5:1 for
+     normal text. Overriding the tokens here fixes every usage at once.
+     Verified via WCAG relative-luminance contrast against #14171c:
+     ink-soft 5.8:1, stamp-red 5.5:1, seal-green 5.4:1. */
+  --color-ink-soft: #8b93a0;
+  --color-stamp-red: #e06b5e;
+  --color-seal-green: #4f9c74;
 }
 
 @keyframes fade-in-up {
@@ -35,23 +78,56 @@ html.dark {
 }
 
 .animate-shimmer {
-  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  background-image: linear-gradient(90deg, transparent, rgba(28, 43, 69, 0.08), transparent);
   background-size: 400px 100%;
   background-repeat: no-repeat;
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
 .dark .animate-shimmer {
-  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  background-image: linear-gradient(90deg, transparent, rgba(238, 240, 234, 0.06), transparent);
 }
 
-/* Glassmorphism surface — used sparingly on the navbar and auth cards. */
-.glass-surface {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+/* Split-flap flip — the one place motion beyond a subtle fade is allowed,
+   used only by StatusFlap when its value changes. */
+@keyframes flap-flip {
+  0% {
+    transform: rotateX(0deg);
+  }
+  45% {
+    transform: rotateX(-90deg);
+  }
+  55% {
+    transform: rotateX(-90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
 }
 
-.dark .glass-surface {
-  background: rgba(15, 15, 17, 0.72);
+.flap-flip {
+  animation: flap-flip 0.45s ease-in-out;
+  transform-style: preserve-3d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flap-flip {
+    animation: none;
+  }
+}
+
+/* Ticket stub: dashed top/bottom (perforation), solid sides — Tailwind's
+   border-style utilities are all-sides-at-once, so this needs real CSS. */
+.ticket-stub {
+  border-left: 1px solid var(--color-paper-line);
+  border-right: 1px solid var(--color-paper-line);
+  border-top: 2px dashed var(--color-paper-line);
+  border-bottom: 2px dashed var(--color-paper-line);
+}
+
+.dark .ticket-stub {
+  border-left-color: var(--color-board-line);
+  border-right-color: var(--color-board-line);
+  border-top-color: var(--color-board-line);
+  border-bottom-color: var(--color-board-line);
 }

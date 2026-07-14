@@ -11,14 +11,14 @@ import EmptyState from '../components/ui/EmptyState';
 const STATUS_OPTIONS = ['submitted', 'in_progress', 'resolved', 'rejected'];
 
 const SELECT_CLASS =
-  'border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-md px-2 py-1 text-xs';
+  'border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper px-2 py-1 text-xs';
 
 function isFlagged(c) {
   return c.is_profane || (c.spam_score != null && c.spam_score >= 0.5) || c.is_repeated_submission;
 }
 
 function FlagBadges({ complaint }) {
-  if (!isFlagged(complaint)) return <span className="text-slate-300 dark:text-slate-600">—</span>;
+  if (!isFlagged(complaint)) return <span className="text-paper-line dark:text-board-line">—</span>;
   return (
     <div className="flex gap-1">
       {complaint.is_profane && <span title="Profanity detected">🤬</span>}
@@ -106,10 +106,11 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+    <div className="min-h-screen bg-paper dark:bg-board">
       <Navbar />
       <PageTransition className="max-w-6xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-6">All Complaints</h1>
+        <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">Ledger</p>
+        <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-6">All Complaints</h1>
 
         <div className="flex flex-wrap gap-3 mb-4">
           <select
@@ -132,14 +133,14 @@ export default function AdminDashboard() {
               <option key={d} value={d}>{d}</option>
             ))}
           </select>
-          <label className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-400">
+          <label className="flex items-center gap-2 px-3 py-2 text-sm text-ink-soft">
             <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} />
             Flagged only
           </label>
         </div>
 
         {loading && <SkeletonRows rows={5} />}
-        {error && <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>}
+        {error && <p className="text-stamp-red mb-4">{error}</p>}
 
         {!loading && (
           <DataTable
@@ -149,13 +150,13 @@ export default function AdminDashboard() {
             searchPlaceholder="Search by title or citizen..."
             emptyState={<EmptyState icon="🔍" title="No complaints match these filters" />}
             renderRow={(c) => (
-              <tr key={c.id} className="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{c.title}</td>
-                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{c.citizen_name}</td>
-                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{c.department_name || 'Unassigned'}</td>
+              <tr key={c.id} className="border-t border-paper-line dark:border-board-line hover:bg-paper-warm dark:hover:bg-board-line/40 transition-colors">
+                <td className="px-4 py-3 font-medium text-ink dark:text-paper">{c.title}</td>
+                <td className="px-4 py-3 text-ink-soft">{c.citizen_name}</td>
+                <td className="px-4 py-3 text-ink-soft">{c.department_name || 'Unassigned'}</td>
                 <td className="px-4 py-3"><PriorityBadge priority={c.ai_priority} /></td>
                 <td className="px-4 py-3"><SentimentBadge sentiment={c.sentiment} /></td>
-                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{c.estimated_resolution_label || '—'}</td>
+                <td className="px-4 py-3 text-ink-soft font-mono">{c.estimated_resolution_label || '—'}</td>
                 <td className="px-4 py-3">
                   <select
                     value={c.assigned_officer_id || ''}
@@ -181,7 +182,7 @@ export default function AdminDashboard() {
                   </select>
                   <span className="ml-2"><StatusBadge status={c.status} /></span>
                 </td>
-                <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{new Date(c.created_at).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-ink-soft font-mono">{new Date(c.created_at).toLocaleDateString()}</td>
               </tr>
             )}
           />

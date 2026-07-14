@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import apiClient from '../api/client';
 import Navbar from '../components/Navbar';
-import StatTile from '../components/charts/StatTile';
-import Meter from '../components/charts/Meter';
+import { MetricRow } from '../components/civic';
 import ChartCard from '../components/charts/ChartCard';
 import MonthlyTrendChart from '../components/charts/MonthlyTrendChart';
 import SingleSeriesBarChart from '../components/charts/SingleSeriesBarChart';
@@ -35,12 +34,13 @@ export default function AnalyticsDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+    <div className="min-h-screen bg-paper dark:bg-board">
       <Navbar />
       <PageTransition className="max-w-6xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Analytics</h1>
+        <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">Board summary</p>
+        <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-6">Analytics</h1>
 
-        {error && <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>}
+        {error && <p className="text-stamp-red mb-4">{error}</p>}
         {!data && !error && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
@@ -49,33 +49,29 @@ export default function AnalyticsDashboard() {
 
         {data && (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-              <StatTile index={0} label="Total complaints" value={data.total_complaints.toLocaleString()} />
-              <StatTile index={1} label="Pending" value={data.pending_complaints.toLocaleString()} />
-              <StatTile index={2} label="Resolved" value={data.resolved_complaints.toLocaleString()} />
-              <Meter
-                index={3}
-                label="Resolution rate"
-                ratio={data.resolution_rate}
-              />
-              <StatTile
-                index={4}
-                label="Avg. resolution time"
-                value={formatHours(data.average_resolution_hours) ?? '—'}
-                note={data.average_resolution_hours == null ? 'No resolved complaints yet' : undefined}
-              />
-              <StatTile
-                index={5}
-                label="Citizen satisfaction"
-                value={data.citizen_satisfaction.available ? `${data.citizen_satisfaction.average_rating.toFixed(1)} ★` : undefined}
-                unavailable={!data.citizen_satisfaction.available}
-                note={
-                  data.citizen_satisfaction.available
+            <MetricRow
+              className="lg:grid-cols-6 mb-6"
+              metrics={[
+                { label: 'Total complaints', value: data.total_complaints.toLocaleString() },
+                { label: 'Pending', value: data.pending_complaints.toLocaleString() },
+                { label: 'Resolved', value: data.resolved_complaints.toLocaleString() },
+                { label: 'Resolution rate', value: `${Math.round(data.resolution_rate * 100)}%`, ratio: data.resolution_rate },
+                {
+                  label: 'Avg. resolution time',
+                  value: formatHours(data.average_resolution_hours) ?? '—',
+                  unavailable: data.average_resolution_hours == null,
+                  note: data.average_resolution_hours == null ? 'No resolved complaints yet' : undefined,
+                },
+                {
+                  label: 'Citizen satisfaction',
+                  value: data.citizen_satisfaction.available ? `${data.citizen_satisfaction.average_rating.toFixed(1)} ★` : undefined,
+                  unavailable: !data.citizen_satisfaction.available,
+                  note: data.citizen_satisfaction.available
                     ? `${data.citizen_satisfaction.total_ratings} rating${data.citizen_satisfaction.total_ratings === 1 ? '' : 's'}`
-                    : data.citizen_satisfaction.note
-                }
-              />
-            </div>
+                    : data.citizen_satisfaction.note,
+                },
+              ]}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
               <ChartCard index={6} title="Complaints per month" subtitle="Last 12 months">
@@ -104,7 +100,7 @@ export default function AnalyticsDashboard() {
                 {data.officer_workload.available ? (
                   <SingleSeriesBarChart data={data.officer_workload.data} dataKey="active_workload" nameKey="officer" height={200} />
                 ) : (
-                  <p className="text-sm text-slate-400 dark:text-slate-500 py-8 text-center">{data.officer_workload.note}</p>
+                  <p className="text-sm text-ink-soft py-8 text-center">{data.officer_workload.note}</p>
                 )}
               </ChartCard>
 
@@ -117,7 +113,7 @@ export default function AnalyticsDashboard() {
                     height={200}
                   />
                 ) : (
-                  <p className="text-sm text-slate-400 dark:text-slate-500 py-8 text-center">{data.department_rating.note}</p>
+                  <p className="text-sm text-ink-soft py-8 text-center">{data.department_rating.note}</p>
                 )}
               </ChartCard>
             </div>

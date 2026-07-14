@@ -1,31 +1,32 @@
 import { useTheme } from '../../context/ThemeContext';
 
-// Roles from the dataviz reference palette — light and dark bands both
-// validated against their respective chart surfaces (see palette.md).
+// Derived from the civic design tokens (see index.css @theme) rather than a
+// separate palette — light band reads off paper/ink, dark band off the
+// board casing.
 const INK = {
-  light: { secondary: '#52514e', muted: '#898781', grid: '#e1e0d9', axis: '#c3c2b7', cursor: '#f9f9f7', tooltipBg: '#fcfcfb', tooltipText: '#0b0b0b', tooltipBorder: '#e1e0d9' },
-  dark: { secondary: '#c3c2b7', muted: '#898781', grid: '#2c2c2a', axis: '#383835', cursor: 'rgba(255,255,255,0.05)', tooltipBg: '#1a1a19', tooltipText: '#ffffff', tooltipBorder: '#383835' },
+  light: { secondary: '#5b6472', muted: '#8a92a0', grid: '#d9d7c9', axis: '#c7c4b3', cursor: '#e7dfc6', tooltipBg: '#ffffff', tooltipText: '#1c2b45', tooltipBorder: '#d9d7c9' },
+  dark: { secondary: '#eef0ea', muted: '#8a92a0', grid: '#262b33', axis: '#33383f', cursor: 'rgba(238,240,234,0.06)', tooltipBg: '#14171c', tooltipText: '#eef0ea', tooltipBorder: '#262b33' },
 };
 
-const SEQUENTIAL_BLUE = { light: '#2a78d6', dark: '#3987e5' };
+const SEQUENTIAL_BRASS = { light: '#b8893e', dark: '#c9994f' };
 
 // Status palette (fixed, never themed) mapped onto complaint priority levels
-// — same steps clear 3:1 contrast on both the light and dark chart surface.
+// — matches the StatusFlap tone mapping in Badges.jsx.
 export const PRIORITY_COLORS = {
-  Critical: '#d03b3b',
-  High: '#ec835a',
-  Medium: '#fab219',
-  Low: '#0ca30c',
-  Unclassified: '#c3c2b7',
+  Critical: '#b23a2e',
+  High: '#c68a2e',
+  Medium: '#b8893e',
+  Low: '#5b6472',
+  Unclassified: '#c7c4b3',
 };
 
 export const PRIORITY_ORDER = ['Critical', 'High', 'Medium', 'Low', 'Unclassified'];
 
-// Matches the SentimentBadge component's existing green/slate/red convention.
+// Matches the SentimentBadge component's seal-green/ink-soft/stamp-red convention.
 export const SENTIMENT_COLORS = {
-  positive: '#0ca30c',
-  neutral: '#c3c2b7',
-  negative: '#d03b3b',
+  positive: '#3c7a5a',
+  neutral: '#5b6472',
+  negative: '#b23a2e',
 };
 
 export function useChartTheme() {
@@ -36,14 +37,15 @@ export function useChartTheme() {
   return {
     isDark,
     ink,
-    sequentialBlue: isDark ? SEQUENTIAL_BLUE.dark : SEQUENTIAL_BLUE.light,
+    sequentialBlue: isDark ? SEQUENTIAL_BRASS.dark : SEQUENTIAL_BRASS.light,
     cursorFill: ink.cursor,
     tooltipStyle: {
-      borderRadius: 8,
+      borderRadius: 3,
       border: `1px solid ${ink.tooltipBorder}`,
       backgroundColor: ink.tooltipBg,
       color: ink.tooltipText,
       fontSize: 12,
+      fontFamily: 'IBM Plex Mono, ui-monospace, monospace',
     },
   };
 }

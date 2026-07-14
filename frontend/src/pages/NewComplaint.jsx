@@ -10,7 +10,7 @@ import { useToast } from '../context/ToastContext';
 import PageTransition from '../components/ui/PageTransition';
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 transition-shadow placeholder:text-slate-400 dark:placeholder:text-slate-500';
+  'w-full px-3 py-2 border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper focus:outline-none focus:ring-2 focus:ring-brass placeholder:text-ink-soft';
 
 export default function NewComplaint() {
   const [title, setTitle] = useState('');
@@ -91,17 +91,18 @@ export default function NewComplaint() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+    <div className="min-h-screen bg-paper dark:bg-board">
       <Navbar />
       <PageTransition className="max-w-2xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Submit a New Complaint</h1>
+        <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">Intake form</p>
+        <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-6">Submit a New Complaint</h1>
         <form
           onSubmit={handleSubmit}
-          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-6"
+          className="bg-white dark:bg-board border border-paper-line dark:border-board-line p-6"
         >
-          {error && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>}
+          {error && <p className="text-sm text-stamp-red mb-4">{error}</p>}
 
-          <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">Title</label>
+          <label className="block text-sm text-ink-soft mb-1">Title</label>
           <input
             required
             value={title}
@@ -111,7 +112,7 @@ export default function NewComplaint() {
           />
 
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm text-slate-600 dark:text-slate-400">Description</label>
+            <label className="block text-sm text-ink-soft">Description</label>
             <VoiceInputButton
               disabled={loading}
               onListeningChange={(listening) => {
@@ -132,7 +133,7 @@ export default function NewComplaint() {
             className={`${INPUT_CLASS} mb-4`}
           />
 
-          <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">Location</label>
+          <label className="block text-sm text-ink-soft mb-1">Location</label>
           <input
             value={locationText}
             onChange={(e) => setLocationText(e.target.value)}
@@ -152,7 +153,7 @@ export default function NewComplaint() {
             />
           </div>
 
-          <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">Photos (optional)</label>
+          <label className="block text-sm text-ink-soft mb-1">Photos (optional)</label>
           <div className="mb-6">
             <ImageDropzone files={images} onChange={setImages} disabled={loading} />
           </div>
@@ -161,18 +162,18 @@ export default function NewComplaint() {
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-3 border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-500/10 rounded-md"
+              className="mb-4 p-3 border-l-4 border-flap-amber bg-paper-warm dark:bg-board-line"
             >
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">
+              <p className="text-sm font-medium text-ink dark:text-paper mb-2">
                 This complaint appears similar to {duplicates.length === 1 ? 'an existing complaint' : 'existing complaints'}:
               </p>
-              <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-1 mb-3">
+              <ul className="text-sm text-ink-soft space-y-1 mb-3">
                 {duplicates.map((d) => (
                   <li key={d.id}>
-                    <Link to={`/complaints/${d.id}`} target="_blank" rel="noreferrer" className="underline hover:text-amber-900 dark:hover:text-amber-200">
+                    <Link to={`/complaints/${d.id}`} target="_blank" rel="noreferrer" className="underline text-ink dark:text-paper hover:text-brass">
                       #{d.id} — {d.title}
                     </Link>{' '}
-                    <span className="text-xs text-amber-500 dark:text-amber-500">({Math.round(d.similarity * 100)}% similar · {d.status})</span>
+                    <span className="text-xs font-mono text-ink-soft">({Math.round(d.similarity * 100)}% similar · {d.status})</span>
                   </li>
                 ))}
               </ul>
@@ -180,7 +181,7 @@ export default function NewComplaint() {
                 type="button"
                 onClick={handleSubmitAnyway}
                 disabled={loading}
-                className="px-3 py-1.5 text-sm bg-amber-800 dark:bg-amber-700 text-white rounded-md hover:bg-amber-900 dark:hover:bg-amber-600 disabled:opacity-50"
+                className="px-3 py-1.5 text-sm border border-ink dark:border-paper-line text-ink dark:text-paper hover:bg-paper dark:hover:bg-board disabled:opacity-50"
               >
                 Submit anyway
               </button>
@@ -190,7 +191,7 @@ export default function NewComplaint() {
           <button
             type="submit"
             disabled={loading || checkingDuplicates}
-            className="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 shadow-sm"
+            className="w-full py-2 bg-ink text-paper hover:bg-ink/90 transition-colors disabled:opacity-50"
           >
             {checkingDuplicates
               ? 'Checking for similar complaints...'
