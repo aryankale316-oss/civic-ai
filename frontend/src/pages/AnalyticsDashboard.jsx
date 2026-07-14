@@ -1,0 +1,129 @@
+import { useEffect, useState } from 'react';
+import apiClient from '../api/client';
+import Navbar from '../components/Navbar';
+import StatTile from '../components/charts/StatTile';
+import Meter from '../components/charts/Meter';
+import ChartCard from '../components/charts/ChartCard';
+import MonthlyTrendChart from '../components/charts/MonthlyTrendChart';
+import SingleSeriesBarChart from '../components/charts/SingleSeriesBarChart';
+import PriorityDistributionChart from '../components/charts/PriorityDistributionChart';
+import PageTransition from '../components/ui/PageTransition';
+import { SkeletonCard } from '../components/ui/Skeleton';
+
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatMonth(monthStr) {
+  const [year, month] = monthStr.split('-');
+  return `${MONTH_LABELS[Number(month) - 1]} ${year}`;
+}
+
+function formatHours(hours) {
+  if (hours == null) return null;
+  if (hours < 24) return `${Math.round(hours)}h`;
+  return `${(hours / 24).toFixed(1)}d`;
+}
+
+export default function AnalyticsDashboard() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    apiClient
+      .get('/analytics/summary')
+      .then(({ data }) => setData(data))
+      .catch(() => setError('Failed to load analytics'));
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+      <Navbar />
+      <PageTransition className="max-w-6xl mx-auto px-6 py-8">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Analytics</h1>
+
+        {error && <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>}
+        {!data && !error && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        )}
+
+        {data && (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+              <StatTile index={0} label="Total complaints" value={data.total_complaints.toLocaleString()} />
+              <StatTile index={1} label="Pending" value={data.pending_complaints.toLocaleString()} />
+              <StatTile index={2} label="Resolved" value={data.resolved_complaints.toLocaleString()} />
+              <Meter
+                index={3}
+                label="Resolution rate"
+                ratio={data.resolution_rate}
+              />
+              <StatTile
+                index={4}
+                label="Avg. resolution time"
+                value={formatHours(data.average_resolution_hours) ?? '—'}
+                note={data.average_resolution_hours == null ? 'No resolved complaints yet' : undefined}
+              />
+              <StatTile
+                index={5}
+                label="Citizen satisfaction"
+                value={data.citizen_satisfaction.available ? `${data.citizen_satisfaction.average_rating.toFixed(1)} ★` : undefined}
+                unavailable={!data.citizen_satisfaction.available}
+                note={
+                  data.citizen_satisfaction.available
+                    ? `${data.citizen_satisfaction.total_ratings} rating${data.citizen_satisfaction.total_ratings === 1 ? '' : 's'}`
+                    : data.citizen_satisfaction.note
+                }
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+              <ChartCard index={6} title="Complaints per month" subtitle="Last 12 months">
+                <MonthlyTrendChart
+                  data={data.complaints_per_month.map((r) => ({ month: formatMonth(r.month), count: r.count }))}
+                />
+              </ChartCard>
+
+              <ChartCard index={7} title="Priority distribution">
+                <PriorityDistributionChart data={data.priority_distribution} />
+              </ChartCard>
+
+              <ChartCard index={8} title="Complaints by department">
+                <SingleSeriesBarChart data={data.complaints_by_department} dataKey="count" nameKey="department" />
+              </ChartCard>
+
+              <ChartCard index={9} title="Top complaint categories">
+                <SingleSeriesBarChart data={data.top_categories} dataKey="count" nameKey="category" />
+              </ChartCard>
+
+              <ChartCard index={10} title="Top hotspot locations" subtitle="By reported location text — see Hotspots for map clustering">
+                <SingleSeriesBarChart data={data.top_locations} dataKey="count" nameKey="location_text" height={200} />
+              </ChartCard>
+
+              <ChartCard index={11} title="Officer workload" subtitle="Active (submitted + in-progress) complaints per officer">
+                {data.officer_workload.available ? (
+                  <SingleSeriesBarChart data={data.officer_workload.data} dataKey="active_workload" nameKey="officer" height={200} />
+                ) : (
+                  <p className="text-sm text-slate-400 dark:text-slate-500 py-8 text-center">{data.officer_workload.note}</p>
+                )}
+              </ChartCard>
+
+              <ChartCard index={12} title="Department rating" subtitle="Average citizen feedback rating (out of 5)">
+                {data.department_rating.available ? (
+                  <SingleSeriesBarChart
+                    data={data.department_rating.data.map((r) => ({ ...r, avg_rating: Number(r.avg_rating.toFixed(1)) }))}
+                    dataKey="avg_rating"
+                    nameKey="department"
+                    height={200}
+                  />
+                ) : (
+                  <p className="text-sm text-slate-400 dark:text-slate-500 py-8 text-center">{data.department_rating.note}</p>
+                )}
+              </ChartCard>
+            </div>
+          </>
+        )}
+      </PageTransition>
+    </div>
+  );
+}
