@@ -7,3 +7,5 @@ pydantic==2.10.4
 sentence-transformers==5.6.0
 vaderSentiment==3.3.2
 python-multipart==0.0.32
+ultralytics==8.4.101
+opencv-python-headless==5.0.0.93

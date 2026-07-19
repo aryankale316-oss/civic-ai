@@ -205,14 +205,26 @@ export default function ComplaintDetail() {
                             </button>
                           )}
                         </div>
-                        {image.detected_objects?.length > 0 && (
+                        {image.detected_objects?.length > 0 ? (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {image.detected_objects.map((d, i) => (
-                              <span key={i} className="px-1.5 py-0.5 bg-paper-warm dark:bg-board-line text-ink-soft text-[10px] font-mono font-medium">
+                              <span
+                                key={i}
+                                title={d.source === 'opencv-heuristic' ? 'Heuristic candidate — not a verified finding' : 'Detected via pretrained YOLOv8n (COCO)'}
+                                className={`px-1.5 py-0.5 text-[10px] font-mono font-medium ${
+                                  d.source === 'opencv-heuristic'
+                                    ? 'bg-flap-amber/20 text-ink dark:text-paper border border-flap-amber/50'
+                                    : 'bg-paper-warm dark:bg-board-line text-ink-soft'
+                                }`}
+                              >
                                 {d.label} ({Math.round(d.confidence * 100)}%)
                               </span>
                             ))}
                           </div>
+                        ) : (
+                          !image.analysis_is_placeholder && image.analyzed_at && (
+                            <p className="text-[10px] text-ink-soft mt-1">No objects detected.</p>
+                          )
                         )}
                       </div>
                     ))}
@@ -223,7 +235,12 @@ export default function ComplaintDetail() {
 
                 {complaint.images.some((img) => img.analysis_is_placeholder) && (
                   <p className="text-xs text-ink-soft mb-3">
-                    Automated photo analysis (potholes, garbage, leaks, etc.) isn't configured for this deployment yet — no detection model is trained.
+                    Photo analysis for these images predates this deployment's detection model — re-upload to get fresh results.
+                  </p>
+                )}
+                {complaint.images.some((img) => !img.analysis_is_placeholder && img.analyzed_at) && (
+                  <p className="text-xs text-ink-soft mb-3">
+                    Amber tags are rough OpenCV heuristic candidates (potholes, garbage, water-logging) — not verified findings. Other tags come from a pretrained general object-detection model.
                   </p>
                 )}
 

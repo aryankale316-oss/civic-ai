@@ -140,3 +140,12 @@ ALTER TABLE complaints ADD COLUMN IF NOT EXISTS spam_score REAL;
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS spam_signals TEXT[];
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS is_repeated_submission BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS repeated_of_complaint_id INTEGER REFERENCES complaints(id);
+
+-- Fake-complaint composite score — combines the AI service's text-gibberish
+-- heuristic (see ai-service/fake_detection.py) with the existing spam score
+-- and duplicate/repeated-submission signals above (see
+-- backend/src/routes/complaints.js). Admin-only, same as the moderation
+-- flags — never shown to the submitting citizen.
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS fake_score REAL;
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS fake_signals TEXT[];
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS is_likely_fake BOOLEAN NOT NULL DEFAULT false;

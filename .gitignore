@@ -5,3 +5,5 @@ dist/
 uploads/
 *.log
 __pycache__/
+# Pretrained YOLO weights - auto-downloaded by ultralytics on first run.
+*.pt

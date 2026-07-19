@@ -51,4 +51,5 @@ cd frontend && npm run dev       # http://localhost:5173
 
 - `backend/.env` and `frontend/.env` are gitignored — don't commit real secrets if this becomes a shared repo.
 - AI classification currently covers 8 categories (Roads, Water Supply, Electricity, Garbage, Drainage, Health, Transport, Public Safety) trained on `ai-service/data/seed_complaints.csv`. Retrain with `python train.py` after editing that file.
-- This is one vertical slice of the full platform spec — no image upload, maps, chatbot, duplicate detection, or analytics dashboards yet.
+- Photo analysis uses a pretrained YOLOv8n (COCO) model plus OpenCV heuristics for pothole/garbage/water-logging candidates — see `/about` in the app for an honest per-feature breakdown of what's a trained model vs. a heuristic. `yolov8n.pt` auto-downloads to `ai-service/` on first run (needs internet once).
+- Fake-complaint detection is a composite heuristic (text-gibberish check + spam score + duplicate/repeated-submission signals), not a trained classifier — there's no labeled fake/genuine dataset to train on yet.

@@ -34,10 +34,44 @@ async function moderateText(text) {
     return data;
 }
 
+async function detectFakeText(text) {
+    const { data } = await axios.post(`${process.env.AI_SERVICE_URL}/detect-fake`, { text }, { timeout: 10000 });
+    return data;
+}
+
 // Moderation flags are for admin review only — never shown to the citizen
 // who submitted the complaint (avoids tipping off spammers and stigmatizing
 // false positives).
-const MODERATION_FIELDS = ['is_profane', 'spam_score', 'spam_signals', 'is_repeated_submission', 'repeated_of_complaint_id'];
+const MODERATION_FIELDS = [
+    'is_profane', 'spam_score', 'spam_signals', 'is_repeated_submission', 'repeated_of_complaint_id',
+    'fake_score', 'fake_signals', 'is_likely_fake',
+];
+
+const FAKE_SCORE_THRESHOLD = 0.5;
+
+// Combines the AI service's text-gibberish heuristic with signals the
+// backend already computes independently (spam score, near-duplicate and
+// repeated-submission detection via embeddings) into one composite score.
+function computeFakeScore({ gibberishResult, spamScore, isRepeatedSubmission, duplicateCount }) {
+    let score = gibberishResult.gibberish_score * 0.6;
+    const signals = [...gibberishResult.gibberish_signals];
+
+    if (spamScore != null && spamScore >= 0.5) {
+        score += 0.2;
+        signals.push('flagged as likely spam');
+    }
+    if (isRepeatedSubmission) {
+        score += 0.3;
+        signals.push('near-identical to the same user\'s recent submission');
+    }
+    if (duplicateCount > 0) {
+        score += 0.3;
+        signals.push(`near-duplicate of ${duplicateCount} existing complaint(s)`);
+    }
+
+    score = Math.min(score, 1);
+    return { score: Math.round(score * 100) / 100, signals, isLikelyFake: score >= FAKE_SCORE_THRESHOLD };
+}
 
 function stripModerationFields(complaint, viewerRole) {
     if (!complaint || viewerRole === 'admin') return complaint;
@@ -105,7 +139,8 @@ const COMPLAINT_SELECT = `
            c.user_id, u.name AS citizen_name, d.id AS department_id, d.name AS department_name,
            c.assigned_officer_id, o.name AS assigned_officer_name,
            f.rating AS feedback_rating, f.review AS feedback_review, f.created_at AS feedback_created_at,
-           c.is_profane, c.spam_score, c.spam_signals, c.is_repeated_submission, c.repeated_of_complaint_id
+           c.is_profane, c.spam_score, c.spam_signals, c.is_repeated_submission, c.repeated_of_complaint_id,
+           c.fake_score, c.fake_signals, c.is_likely_fake
     FROM complaints c
     JOIN users u ON u.id = c.user_id
     LEFT JOIN departments d ON d.id = c.department_id
@@ -127,7 +162,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     const combinedText = `${title}. ${description}`;
 
-    const [aiResult, sentimentResult, moderationResult] = await Promise.all([
+    const [aiResult, sentimentResult, moderationResult, fakeResult] = await Promise.all([
         axios
             .post(`${process.env.AI_SERVICE_URL}/classify`, { text: combinedText })
             .then((r) => r.data)
@@ -146,7 +181,18 @@ router.post('/', requireAuth, async (req, res) => {
             console.error('Moderation check failed:', err.message);
             return { is_profane: false, spam_score: null, spam_signals: [] };
         }),
+        detectFakeText(combinedText).catch((err) => {
+            console.error('Fake-complaint check failed:', err.message);
+            return { gibberish_score: 0, gibberish_signals: [] };
+        }),
     ]);
+
+    const initialFake = computeFakeScore({
+        gibberishResult: fakeResult,
+        spamScore: moderationResult.spam_score,
+        isRepeatedSubmission: false,
+        duplicateCount: 0,
+    });
 
     const [deptRow, resolutionResult] = await Promise.all([
         aiResult.department
@@ -167,8 +213,8 @@ router.post('/', requireAuth, async (req, res) => {
 
     const insertResult = await pool.query(
         `INSERT INTO complaints
-            (user_id, title, description, location_text, latitude, longitude, ai_category, department_id, ai_priority, ai_confidence, sentiment, sentiment_score, estimated_resolution_hours, estimated_resolution_label, is_profane, spam_score, spam_signals)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            (user_id, title, description, location_text, latitude, longitude, ai_category, department_id, ai_priority, ai_confidence, sentiment, sentiment_score, estimated_resolution_hours, estimated_resolution_label, is_profane, spam_score, spam_signals, fake_score, fake_signals, is_likely_fake)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
          RETURNING id`,
         [
             req.user.id,
@@ -188,6 +234,9 @@ router.post('/', requireAuth, async (req, res) => {
             moderationResult.is_profane,
             moderationResult.spam_score,
             moderationResult.spam_signals,
+            initialFake.score,
+            initialFake.signals,
+            initialFake.isLikelyFake,
         ]
     );
 
@@ -200,13 +249,25 @@ router.post('/', requireAuth, async (req, res) => {
             [complaintId, embedding]
         );
 
-        const repeatedOfId = await findRepeatedSubmission(embedding, req.user.id, complaintId);
-        if (repeatedOfId) {
-            await pool.query(
-                'UPDATE complaints SET is_repeated_submission = true, repeated_of_complaint_id = $1 WHERE id = $2',
-                [repeatedOfId, complaintId]
-            );
-        }
+        const [repeatedOfId, duplicateMatches] = await Promise.all([
+            findRepeatedSubmission(embedding, req.user.id, complaintId),
+            findSimilarComplaints(embedding, complaintId),
+        ]);
+
+        const finalFake = computeFakeScore({
+            gibberishResult: fakeResult,
+            spamScore: moderationResult.spam_score,
+            isRepeatedSubmission: !!repeatedOfId,
+            duplicateCount: duplicateMatches.length,
+        });
+
+        await pool.query(
+            `UPDATE complaints
+             SET is_repeated_submission = $1, repeated_of_complaint_id = $2,
+                 fake_score = $3, fake_signals = $4, is_likely_fake = $5
+             WHERE id = $6`,
+            [!!repeatedOfId, repeatedOfId, finalFake.score, finalFake.signals, finalFake.isLikelyFake, complaintId]
+        );
     } catch (err) {
         console.error('Embedding generation failed, duplicate detection will skip this complaint:', err.message);
     }

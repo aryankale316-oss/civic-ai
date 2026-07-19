@@ -1,6 +1,7 @@
 import os
 from typing import List
 
+import cv2
 import joblib
 import numpy as np
 import pandas as pd
@@ -9,14 +10,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 from sklearn.cluster import DBSCAN
+from ultralytics import YOLO
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 from priority import predict_priority
 from moderation import moderate_text
+from fake_detection import check_gibberish
+from image_detection import detect_civic_issues
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model.joblib")
 RESOLUTION_MODEL_PATH = os.path.join(BASE_DIR, "resolution_model.joblib")
+YOLO_MODEL_PATH = os.path.join(BASE_DIR, "yolov8n.pt")
 
 app = FastAPI(title="Civic AI Classification Service")
 app.add_middleware(
@@ -34,6 +39,13 @@ resolution_model = joblib.load(RESOLUTION_MODEL_PATH)
 
 # Loaded once at startup; ~90MB download to the HF cache on first run.
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# Pretrained on COCO (80 general object classes) — auto-downloads to
+# YOLO_MODEL_PATH on first run. Not fine-tuned on civic imagery, so it can
+# recognize things like "car" or "person" in a photo but has no concept of
+# "pothole" or "garbage pile"; those come from the OpenCV heuristics below.
+yolo_model = YOLO(YOLO_MODEL_PATH)
+YOLO_CONFIDENCE_THRESHOLD = 0.35
 
 sentiment_analyzer = SentimentIntensityAnalyzer()
 # Standard VADER thresholds on the compound score.
@@ -134,6 +146,7 @@ class Detection(BaseModel):
     label: str
     confidence: float
     bbox: List[float]  # [x_min, y_min, width, height], normalized 0-1 relative to image size
+    source: str  # "yolov8n-coco" (general object) or "opencv-heuristic" (civic-issue candidate)
 
 
 class DetectIssuesResponse(BaseModel):
@@ -142,6 +155,15 @@ class DetectIssuesResponse(BaseModel):
     model_version: str
     supported_labels: List[str]
     note: str
+
+
+class FakeCheckRequest(BaseModel):
+    text: str
+
+
+class FakeCheckResponse(BaseModel):
+    gibberish_score: float
+    gibberish_signals: List[str]
 
 
 def humanize_hours(hours: float) -> str:
@@ -157,16 +179,13 @@ def humanize_hours(hours: float) -> str:
     return f"{n} week{'s' if n != 1 else ''}"
 
 
-# The categories this endpoint is meant to eventually detect. No model is
-# trained yet — see the note below.
+# civic-issue candidates from the OpenCV heuristics, plus the 80 general COCO
+# classes the YOLOv8n model can recognize (car, person, dog, etc.).
 SUPPORTED_ISSUE_LABELS = [
-    "pothole",
-    "garbage",
-    "water_leakage",
-    "broken_streetlight",
-    "illegal_dumping",
-    "flooding",
-]
+    "pothole_candidate",
+    "garbage_candidate",
+    "water_logging_candidate",
+] + list(yolo_model.names.values())
 
 
 @app.get("/health")
@@ -249,20 +268,52 @@ def cluster_hotspots(req: ClusterRequest):
 
 @app.post("/detect-issues", response_model=DetectIssuesResponse)
 async def detect_issues(image: UploadFile = File(...)):
-    # Placeholder: no object-detection model (YOLOv8/OpenCV) is trained or
-    # deployed yet — recognizing potholes/garbage/leaks/etc. needs a labeled
-    # image dataset this project doesn't have. This endpoint is fully wired
-    # (upload -> here -> stored on the complaint image -> shown in the UI) so
-    # a real trained model can be dropped in later without touching the
-    # backend or frontend contract.
-    await image.read()  # drain the upload so the connection closes cleanly
+    raw = await image.read()
+    npbuf = np.frombuffer(raw, np.uint8)
+    img_bgr = cv2.imdecode(npbuf, cv2.IMREAD_COLOR)
+
+    if img_bgr is None:
+        return DetectIssuesResponse(
+            detections=[],
+            is_placeholder=False,
+            model_version="yolov8n-coco + opencv-heuristics-v1",
+            supported_labels=SUPPORTED_ISSUE_LABELS,
+            note="Could not decode this file as an image — no analysis was run.",
+        )
+
+    h, w = img_bgr.shape[:2]
+    detections = []
+
+    results = yolo_model.predict(img_bgr, verbose=False, conf=YOLO_CONFIDENCE_THRESHOLD)[0]
+    for box in results.boxes:
+        x1, y1, x2, y2 = box.xyxy[0].tolist()
+        detections.append(Detection(
+            label=yolo_model.names[int(box.cls[0])],
+            confidence=round(float(box.conf[0]), 2),
+            bbox=[x1 / w, y1 / h, (x2 - x1) / w, (y2 - y1) / h],
+            source="yolov8n-coco",
+        ))
+
+    detections.extend(Detection(**d) for d in detect_civic_issues(img_bgr))
+
     return DetectIssuesResponse(
-        detections=[],
-        is_placeholder=True,
-        model_version="none",
+        detections=detections,
+        is_placeholder=False,
+        model_version="yolov8n-coco + opencv-heuristics-v1",
         supported_labels=SUPPORTED_ISSUE_LABELS,
-        note="Image analysis is not yet configured — no trained detection model is deployed.",
+        note=(
+            "General objects (person, car, etc.) are detected with a pretrained YOLOv8n "
+            "(COCO) model. Pothole/garbage/water-logging candidates come from lightweight "
+            "OpenCV heuristics, not a model trained on civic imagery — treat those as rough "
+            "hints, not verified findings."
+        ),
     )
+
+
+@app.post("/detect-fake", response_model=FakeCheckResponse)
+def detect_fake(req: FakeCheckRequest):
+    score, signals = check_gibberish(req.text)
+    return FakeCheckResponse(gibberish_score=score, gibberish_signals=signals)
 
 
 @app.post("/classify", response_model=ClassifyResponse)

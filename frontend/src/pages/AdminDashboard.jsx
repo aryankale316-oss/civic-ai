@@ -14,7 +14,12 @@ const SELECT_CLASS =
   'border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper px-2 py-1 text-xs';
 
 function isFlagged(c) {
-  return c.is_profane || (c.spam_score != null && c.spam_score >= 0.5) || c.is_repeated_submission;
+  return (
+    c.is_profane ||
+    (c.spam_score != null && c.spam_score >= 0.5) ||
+    c.is_repeated_submission ||
+    c.is_likely_fake
+  );
 }
 
 function FlagBadges({ complaint }) {
@@ -27,6 +32,9 @@ function FlagBadges({ complaint }) {
       )}
       {complaint.is_repeated_submission && (
         <span title={`Similar to complaint #${complaint.repeated_of_complaint_id}`}>🔁</span>
+      )}
+      {complaint.is_likely_fake && (
+        <span title={`Fake-complaint score ${Math.round((complaint.fake_score || 0) * 100)}%: ${complaint.fake_signals?.join(', ') || 'n/a'}`}>🎭</span>
       )}
     </div>
   );
