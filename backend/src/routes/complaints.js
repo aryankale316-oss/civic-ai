@@ -5,9 +5,9 @@ const express = require('express');
 const axios = require('axios');
 const FormData = require('form-data');
 const pool = require('../config/db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requireAnyRole } = require('../middleware/auth');
 const { upload, UPLOADS_DIR } = require('../middleware/upload');
-const { createNotification, notifyAdmins } = require('../services/notifications');
+const { createNotification, notifyAdmins, notifyDeptAdmins } = require('../services/notifications');
 
 const router = express.Router();
 
@@ -73,8 +73,12 @@ function computeFakeScore({ gibberishResult, spamScore, isRepeatedSubmission, du
     return { score: Math.round(score * 100) / 100, signals, isLikelyFake: score >= FAKE_SCORE_THRESHOLD };
 }
 
+function isStaff(role) {
+    return role === 'admin' || role === 'dept_admin';
+}
+
 function stripModerationFields(complaint, viewerRole) {
-    if (!complaint || viewerRole === 'admin') return complaint;
+    if (!complaint || isStaff(viewerRole)) return complaint;
     for (const field of MODERATION_FIELDS) {
         delete complaint[field];
     }
@@ -276,14 +280,15 @@ router.post('/', requireAuth, async (req, res) => {
     const complaint = stripModerationFields(rows[0], req.user.role);
 
     try {
-        await notifyAdmins({
+        await notifyDeptAdmins({
+            departmentId,
             complaintId,
             type: 'new_complaint',
             title: 'New complaint received',
-            message: `${title} — ${aiResult.category || 'Uncategorized'} (${aiResult.priority} priority)`,
+            message: `${title} — ${aiResult.category || 'Uncategorized'} (${aiResult.priority} priority, routed by AI at ${Math.round((aiResult.confidence || 0) * 100)}% confidence)`,
         });
     } catch (err) {
-        console.error('Admin notification failed:', err.message);
+        console.error('Department admin notification failed:', err.message);
     }
 
     res.status(201).json(complaint);
@@ -348,6 +353,13 @@ router.get('/', requireAuth, async (req, res) => {
         const { rows } = await pool.query(`${COMPLAINT_SELECT} ORDER BY c.created_at DESC`);
         return res.json(rows);
     }
+    if (req.user.role === 'dept_admin') {
+        const { rows } = await pool.query(
+            `${COMPLAINT_SELECT} WHERE c.department_id = $1 ORDER BY c.created_at DESC`,
+            [req.user.department_id]
+        );
+        return res.json(rows);
+    }
     const { rows } = await pool.query(
         `${COMPLAINT_SELECT} WHERE c.user_id = $1 ORDER BY c.created_at DESC`,
         [req.user.id]
@@ -361,7 +373,8 @@ router.get('/:id', requireAuth, async (req, res) => {
     if (!complaint) {
         return res.status(404).json({ error: 'Complaint not found' });
     }
-    if (req.user.role !== 'admin' && complaint.user_id !== req.user.id) {
+    const isOwnDeptComplaint = req.user.role === 'dept_admin' && complaint.department_id === req.user.department_id;
+    if (req.user.role !== 'admin' && !isOwnDeptComplaint && complaint.user_id !== req.user.id) {
         return res.status(403).json({ error: 'Forbidden' });
     }
 
@@ -451,11 +464,34 @@ router.delete('/:id/images/:imageId', requireAuth, async (req, res) => {
 
 const VALID_STATUSES = ['submitted', 'in_progress', 'resolved', 'rejected'];
 
-router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) => {
+// Dept admins may only touch complaints already routed to their own
+// department; the platform admin can touch anything. Returns the complaint's
+// current department_id/user_id for the caller to act on, or null after
+// writing an error response.
+async function loadComplaintForStaffAccess(req, res) {
+    const { rows } = await pool.query('SELECT id, user_id, department_id FROM complaints WHERE id = $1', [
+        req.params.id,
+    ]);
+    const complaint = rows[0];
+    if (!complaint) {
+        res.status(404).json({ error: 'Complaint not found' });
+        return null;
+    }
+    if (req.user.role === 'dept_admin' && complaint.department_id !== req.user.department_id) {
+        res.status(403).json({ error: 'This complaint is not in your department' });
+        return null;
+    }
+    return complaint;
+}
+
+router.patch('/:id/status', requireAuth, requireAnyRole(['admin', 'dept_admin']), async (req, res) => {
     const { status } = req.body;
     if (!VALID_STATUSES.includes(status)) {
         return res.status(400).json({ error: `status must be one of ${VALID_STATUSES.join(', ')}` });
     }
+
+    const target = await loadComplaintForStaffAccess(req, res);
+    if (!target) return;
 
     const result = await pool.query(
         `UPDATE complaints
@@ -486,8 +522,11 @@ router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) 
     res.json(complaint);
 });
 
-router.patch('/:id/assign', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/assign', requireAuth, requireAnyRole(['admin', 'dept_admin']), async (req, res) => {
     const { officer_id } = req.body;
+
+    const target = await loadComplaintForStaffAccess(req, res);
+    if (!target) return;
 
     if (officer_id != null) {
         const officerRow = await pool.query('SELECT id FROM officers WHERE id = $1', [officer_id]);
@@ -526,6 +565,50 @@ router.patch('/:id/assign', requireAuth, requireRole('admin'), async (req, res) 
         } catch (err) {
             console.error('Citizen notification failed:', err.message);
         }
+    }
+
+    res.json(complaint);
+});
+
+// Manual override for when the AI classifier routes a complaint to the
+// wrong department. Either the platform admin or the dept_admin who
+// currently "owns" the complaint can trigger it; the newly-targeted
+// department's admin(s) get notified same as an AI-routed complaint would.
+router.patch('/:id/reassign-department', requireAuth, requireAnyRole(['admin', 'dept_admin']), async (req, res) => {
+    const { department_id } = req.body;
+    if (!department_id) {
+        return res.status(400).json({ error: 'department_id is required' });
+    }
+
+    const target = await loadComplaintForStaffAccess(req, res);
+    if (!target) return;
+
+    const deptRow = await pool.query('SELECT id FROM departments WHERE id = $1', [department_id]);
+    if (deptRow.rows.length === 0) {
+        return res.status(400).json({ error: 'Department not found' });
+    }
+
+    const result = await pool.query(
+        'UPDATE complaints SET department_id = $1, updated_at = now() WHERE id = $2 RETURNING id',
+        [department_id, req.params.id]
+    );
+    if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Complaint not found' });
+    }
+
+    const { rows } = await pool.query(`${COMPLAINT_SELECT} WHERE c.id = $1`, [req.params.id]);
+    const complaint = rows[0];
+
+    try {
+        await notifyDeptAdmins({
+            departmentId: department_id,
+            complaintId: complaint.id,
+            type: 'new_complaint',
+            title: 'Complaint reassigned to your department',
+            message: `"${complaint.title}" was reassigned to ${complaint.department_name} by ${req.user.role === 'admin' ? 'the platform admin' : 'another department'}`,
+        });
+    } catch (err) {
+        console.error('Department admin notification failed:', err.message);
     }
 
     res.json(complaint);

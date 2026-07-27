@@ -23,7 +23,7 @@ export default function AdminLogin() {
     setLoading(true);
     try {
       const { data } = await apiClient.post('/auth/login', { email, password });
-      if (data.user.role !== 'admin') {
+      if (data.user.role !== 'admin' && data.user.role !== 'dept_admin') {
         setError('This account is not an admin account');
         return;
       }

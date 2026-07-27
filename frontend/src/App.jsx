@@ -36,7 +36,7 @@ function PageFallback() {
 function Home() {
   const { user } = useAuth();
   if (!user) return <Landing />;
-  return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />;
+  return <Navigate to={user.role === 'admin' || user.role === 'dept_admin' ? '/admin/dashboard' : '/dashboard'} replace />;
 }
 
 function ChatWidgetGate() {
@@ -94,7 +94,7 @@ export default function App() {
                 <Route
                   path="/admin/dashboard"
                   element={
-                    <ProtectedRoute role="admin">
+                    <ProtectedRoute role={['admin', 'dept_admin']}>
                       <AdminDashboard />
                     </ProtectedRoute>
                   }

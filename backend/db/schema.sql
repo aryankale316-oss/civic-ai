@@ -9,10 +9,23 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Widen the role constraint to add 'dept_admin' (department-scoped admin
+-- accounts, routed to automatically by the classifier at submission time —
+-- see backend/src/routes/complaints.js). Postgres has no ADD CONSTRAINT IF
+-- NOT EXISTS, so drop-then-add is the idempotent way to keep this in sync
+-- on databases that already have the old two-role constraint.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('citizen', 'admin', 'dept_admin'));
+
 CREATE TABLE IF NOT EXISTS departments (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE
 );
+
+-- Only set for role = 'dept_admin'; identifies which department's
+-- complaints this account is scoped to. Added here (after `departments`
+-- exists) since it's an FK reference.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id INTEGER REFERENCES departments(id);
 
 CREATE TABLE IF NOT EXISTS complaints (
     id SERIAL PRIMARY KEY,

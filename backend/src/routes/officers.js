@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../config/db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requireAnyRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -32,14 +32,23 @@ function withPerformanceScore(row) {
     };
 }
 
-router.use(requireAuth, requireRole('admin'));
+router.use(requireAuth, requireAnyRole(['admin', 'dept_admin']));
 
+// dept_admin only needs officers within their own department to fill the
+// "assign officer" dropdown; the platform admin sees everyone.
 router.get('/', async (req, res) => {
+    if (req.user.role === 'dept_admin') {
+        const { rows } = await pool.query(
+            `${OFFICER_LIST_SELECT.replace('GROUP BY', 'WHERE o.department_id = $1 GROUP BY')}`,
+            [req.user.department_id]
+        );
+        return res.json(rows.map(withPerformanceScore));
+    }
     const { rows } = await pool.query(OFFICER_LIST_SELECT);
     res.json(rows.map(withPerformanceScore));
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireRole('admin'), async (req, res) => {
     const { name, email, phone, department_id } = req.body;
     if (!name || !email) {
         return res.status(400).json({ error: 'name and email are required' });
@@ -79,7 +88,7 @@ router.get('/:id', async (req, res) => {
     res.json({ ...withPerformanceScore(officer), complaints });
 });
 
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', requireRole('admin'), async (req, res) => {
     const { name, phone, department_id, status } = req.body;
     if (status && !['active', 'inactive'].includes(status)) {
         return res.status(400).json({ error: 'status must be active or inactive' });
@@ -106,7 +115,7 @@ router.patch('/:id', async (req, res) => {
     res.json(withPerformanceScore(rows[0]));
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('admin'), async (req, res) => {
     const result = await pool.query('DELETE FROM officers WHERE id = $1 RETURNING id', [req.params.id]);
     if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Officer not found' });

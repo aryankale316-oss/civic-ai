@@ -56,6 +56,7 @@ const COLUMNS = [
 export default function AdminDashboard() {
   const [complaints, setComplaints] = useState([]);
   const [officers, setOfficers] = useState([]);
+  const [allDepartments, setAllDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -75,7 +76,25 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadComplaints();
     apiClient.get('/officers').then(({ data }) => setOfficers(data)).catch(() => {});
+    apiClient.get('/departments').then(({ data }) => setAllDepartments(data)).catch(() => {});
   }, []);
+
+  async function handleReassignDepartment(id, departmentId) {
+    const previous = complaints;
+    const department = allDepartments.find((d) => d.id === Number(departmentId));
+    setComplaints((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, department_id: department?.id ?? null, department_name: department?.name ?? null } : c))
+    );
+    try {
+      await apiClient.patch(`/complaints/${id}/reassign-department`, { department_id: departmentId });
+      toast.success(`Reassigned to ${department?.name}`);
+      // The complaint may no longer belong in a department-scoped view.
+      loadComplaints();
+    } catch (err) {
+      setComplaints(previous);
+      toast.error(err.response?.data?.error || 'Failed to reassign department');
+    }
+  }
 
   async function handleStatusChange(id, status) {
     const previous = complaints;
@@ -161,7 +180,22 @@ export default function AdminDashboard() {
               <tr key={c.id} className="border-t border-paper-line dark:border-board-line hover:bg-paper-warm dark:hover:bg-board-line/40 transition-colors">
                 <td className="px-4 py-3 font-medium text-ink dark:text-paper">{c.title}</td>
                 <td className="px-4 py-3 text-ink-soft">{c.citizen_name}</td>
-                <td className="px-4 py-3 text-ink-soft">{c.department_name || 'Unassigned'}</td>
+                <td className="px-4 py-3">
+                  <select
+                    value={c.department_id || ''}
+                    onChange={(e) => handleReassignDepartment(c.id, e.target.value)}
+                    className={SELECT_CLASS}
+                    title={c.ai_confidence != null ? `AI-routed at ${Math.round(c.ai_confidence * 100)}% confidence` : undefined}
+                  >
+                    <option value="" disabled>Unassigned</option>
+                    {allDepartments.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  {c.ai_confidence != null && (
+                    <span className="ml-1 text-xs text-ink-soft font-mono">{Math.round(c.ai_confidence * 100)}%</span>
+                  )}
+                </td>
                 <td className="px-4 py-3"><PriorityBadge priority={c.ai_priority} /></td>
                 <td className="px-4 py-3"><SentimentBadge sentiment={c.sentiment} /></td>
                 <td className="px-4 py-3 text-ink-soft font-mono">{c.estimated_resolution_label || '—'}</td>

@@ -25,4 +25,21 @@ async function notifyAdmins({ complaintId, type, title, message }) {
     );
 }
 
-module.exports = { setIO, createNotification, notifyAdmins };
+// Routes a notification to the dept_admin(s) scoped to a department, instead
+// of broadcasting to every admin. Falls back to notifyAdmins when a
+// complaint has no department (classifier couldn't route it) so it still
+// surfaces to someone.
+async function notifyDeptAdmins({ departmentId, complaintId, type, title, message }) {
+    if (departmentId == null) {
+        return notifyAdmins({ complaintId, type, title, message });
+    }
+    const { rows: deptAdmins } = await pool.query(
+        "SELECT id FROM users WHERE role = 'dept_admin' AND department_id = $1",
+        [departmentId]
+    );
+    await Promise.all(
+        deptAdmins.map((admin) => createNotification({ userId: admin.id, complaintId, type, title, message }))
+    );
+}
+
+module.exports = { setIO, createNotification, notifyAdmins, notifyDeptAdmins };

@@ -16,6 +16,10 @@ const ADMIN_LINKS = [
   { to: '/admin/insights', label: 'Insights' },
 ];
 
+// Cross-department analytics/officer-management stay platform-admin only;
+// a dept_admin only needs their own (already department-scoped) queue.
+const DEPT_ADMIN_LINKS = [{ to: '/admin/dashboard', label: 'Dashboard' }];
+
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
   return (
@@ -89,19 +93,22 @@ export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const isStaff = user?.role === 'admin' || user?.role === 'dept_admin';
+
   function handleLogout() {
     logout();
-    navigate(user?.role === 'admin' ? '/admin/login' : '/login');
+    navigate(isStaff ? '/admin/login' : '/login');
   }
 
-  const links = user?.role === 'admin' ? ADMIN_LINKS : user?.role === 'citizen' ? CITIZEN_LINKS : [];
+  const links =
+    user?.role === 'admin' ? ADMIN_LINKS : user?.role === 'dept_admin' ? DEPT_ADMIN_LINKS : user?.role === 'citizen' ? CITIZEN_LINKS : [];
 
   return (
     <nav className="sticky top-0 z-40 bg-paper dark:bg-board border-b border-paper-line dark:border-board-line">
       <div className="flex items-center justify-between px-4 sm:px-6 py-3">
         <div className="flex items-center gap-6">
           <Link
-            to={user?.role === 'admin' ? '/admin/dashboard' : '/dashboard'}
+            to={isStaff ? '/admin/dashboard' : '/dashboard'}
             className="font-display font-bold text-xl uppercase tracking-wide text-ink dark:text-paper"
           >
             Civic AI
