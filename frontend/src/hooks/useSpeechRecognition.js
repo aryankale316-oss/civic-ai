@@ -3,6 +3,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const SpeechRecognitionAPI =
   typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
 
+const ERROR_MESSAGES = {
+  'not-allowed': 'Microphone access denied',
+  'service-not-allowed': 'Microphone access denied',
+  'audio-capture': 'No microphone found',
+  'no-speech': "Didn't catch that — try again",
+  network: 'No connection to the speech recognition service',
+  'language-not-supported': 'Language not supported',
+  'bad-grammar': 'Speech recognition error',
+};
+
 /**
  * Thin wrapper around the browser's Web Speech API. Callbacks are held in
  * refs so the underlying SpeechRecognition instance is created once and
@@ -38,7 +48,11 @@ export function useSpeechRecognition({ onTranscriptChange, onListeningChange } =
     };
 
     recognition.onerror = (event) => {
-      setError(event.error === 'not-allowed' ? 'Microphone access denied' : 'Speech recognition error');
+      // 'aborted' fires when stop() is called intentionally (e.g. Chrome mid-utterance) —
+      // not a real failure, so don't surface it as an error.
+      if (event.error !== 'aborted') {
+        setError(ERROR_MESSAGES[event.error] || `Speech recognition error (${event.error})`);
+      }
       setIsListening(false);
       onListeningChangeRef.current?.(false);
     };

@@ -77,6 +77,9 @@ export default function ComplaintDetail() {
 
   const canManage = complaint && user && (user.role === 'admin' || user.id === complaint.user_id);
   const isOwner = complaint && user && user.id === complaint.user_id;
+  const isStaff = user && (user.role === 'admin' || user.role === 'dept_admin');
+  const backTo = isStaff ? '/admin/dashboard' : '/dashboard';
+  const backLabel = isStaff ? '← Back to all complaints' : '← Back to my complaints';
 
   async function handleSubmitFeedback(e) {
     e.preventDefault();
@@ -138,8 +141,8 @@ export default function ComplaintDetail() {
     <div className="min-h-screen bg-paper dark:bg-board">
       <Navbar />
       <PageTransition className="max-w-2xl mx-auto px-6 py-8">
-        <Link to="/dashboard" className="text-sm text-ink-soft hover:text-ink dark:hover:text-paper">
-          &larr; Back to my complaints
+        <Link to={backTo} className="text-sm text-ink-soft hover:text-ink dark:hover:text-paper">
+          {backLabel}
         </Link>
 
         {error && <p className="text-stamp-red mt-4">{error}</p>}

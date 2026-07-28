@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 import Navbar from '../components/Navbar';
 import { PriorityBadge, StatusBadge, SentimentBadge } from '../components/Badges';
@@ -63,6 +64,7 @@ export default function AdminDashboard() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [flaggedOnly, setFlaggedOnly] = useState(false);
   const toast = useToast();
+  const navigate = useNavigate();
 
   function loadComplaints() {
     setLoading(true);
@@ -177,10 +179,14 @@ export default function AdminDashboard() {
             searchPlaceholder="Search by title or citizen..."
             emptyState={<EmptyState icon="🔍" title="No complaints match these filters" />}
             renderRow={(c) => (
-              <tr key={c.id} className="border-t border-paper-line dark:border-board-line hover:bg-paper-warm dark:hover:bg-board-line/40 transition-colors">
+              <tr
+                key={c.id}
+                onClick={() => navigate(`/complaints/${c.id}`)}
+                className="border-t border-paper-line dark:border-board-line hover:bg-paper-warm dark:hover:bg-board-line/40 transition-colors cursor-pointer"
+              >
                 <td className="px-4 py-3 font-medium text-ink dark:text-paper">{c.title}</td>
                 <td className="px-4 py-3 text-ink-soft">{c.citizen_name}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <select
                     value={c.department_id || ''}
                     onChange={(e) => handleReassignDepartment(c.id, e.target.value)}
@@ -199,7 +205,7 @@ export default function AdminDashboard() {
                 <td className="px-4 py-3"><PriorityBadge priority={c.ai_priority} /></td>
                 <td className="px-4 py-3"><SentimentBadge sentiment={c.sentiment} /></td>
                 <td className="px-4 py-3 text-ink-soft font-mono">{c.estimated_resolution_label || '—'}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <select
                     value={c.assigned_officer_id || ''}
                     onChange={(e) => handleAssign(c.id, e.target.value)}
@@ -212,7 +218,7 @@ export default function AdminDashboard() {
                   </select>
                 </td>
                 <td className="px-4 py-3"><FlagBadges complaint={c} /></td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <select
                     value={c.status}
                     onChange={(e) => handleStatusChange(c.id, e.target.value)}
