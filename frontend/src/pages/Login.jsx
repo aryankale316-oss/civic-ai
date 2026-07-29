@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext';
 import AuthLayout from '../components/AuthLayout';
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper focus:outline-none focus:ring-2 focus:ring-brass';
+  'w-full rounded-md border border-paper-line bg-white px-4 py-3 text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/15 dark:border-board-line dark:bg-board-line dark:text-paper';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -36,41 +36,43 @@ export default function Login() {
   }
 
   return (
-    <AuthLayout title="Citizen Login" subtitle="Sign in to track and submit complaints">
+    <AuthLayout title="Welcome back" subtitle="Securely access your civic portal to file grievances and view progress.">
       <form onSubmit={handleSubmit}>
-        {error && <p className="text-sm text-stamp-red mb-4">{error}</p>}
+        {error && <p className="mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-stamp-red dark:border-red-900 dark:bg-red-950/30">{error}</p>}
 
-        <label className="block text-sm text-ink-soft mb-1">Email</label>
+        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">Email address</label>
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={`${INPUT_CLASS} mb-4`}
+          placeholder="citizen@example.com"
+          className={`${INPUT_CLASS} mb-5`}
         />
 
-        <label className="block text-sm text-ink-soft mb-1">Password</label>
+        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">Password</label>
         <input
           type="password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter your password"
           className={`${INPUT_CLASS} mb-6`}
         />
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 bg-ink text-paper hover:bg-ink/90 transition-colors disabled:opacity-50"
+          className="w-full rounded-md bg-civic py-3 font-semibold text-white transition-colors hover:bg-civic-bright disabled:opacity-50"
         >
           {loading ? 'Logging in...' : 'Log in'}
         </button>
 
-        <p className="text-sm text-ink-soft mt-4 text-center">
-          No account? <Link to="/register" className="text-ink dark:text-paper underline hover:text-brass">Register</Link>
+        <p className="mt-6 border-t border-paper-line pt-6 text-center text-sm text-ink-soft dark:border-board-line">
+          No account? <Link to="/register" className="font-semibold text-civic hover:underline dark:text-seal-green">Create account</Link>
         </p>
         <p className="text-sm text-ink-soft mt-2 text-center">
-          <Link to="/admin/login" className="text-ink dark:text-paper underline hover:text-brass">Admin login</Link>
+          <Link to="/admin/login" className="font-medium text-ink-soft hover:text-civic">Authorized staff login</Link>
         </p>
       </form>
     </AuthLayout>

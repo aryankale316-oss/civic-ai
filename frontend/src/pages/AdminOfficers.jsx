@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import apiClient from '../api/client';
-import Navbar from '../components/Navbar';
+import AdminShell from '../components/AdminShell';
 import { useToast } from '../context/ToastContext';
 import PageTransition from '../components/ui/PageTransition';
 import DataTable from '../components/ui/DataTable';
@@ -10,8 +10,8 @@ import { StatusFlap } from '../components/civic';
 
 const emptyForm = { name: '', email: '', phone: '', department_id: '' };
 
-const INPUT_CLASS = 'px-3 py-1.5 border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper text-sm';
-const CELL_INPUT_CLASS = 'px-2 py-1 border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper text-sm';
+const INPUT_CLASS = 'rounded-md border border-paper-line bg-white px-3 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/15 dark:border-board-line dark:bg-board-line dark:text-paper';
+const CELL_INPUT_CLASS = 'rounded-md border border-paper-line bg-white px-2 py-2 text-sm text-ink dark:border-board-line dark:bg-board-line dark:text-paper';
 
 function PerformanceBadge({ score }) {
   if (score == null) return <span className="text-xs text-ink-soft">Not yet rated</span>;
@@ -107,17 +107,16 @@ export default function AdminOfficers() {
   }
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-board">
-      <Navbar />
-      <PageTransition className="max-w-6xl mx-auto px-6 py-8">
-        <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">Roster</p>
-        <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-6">Officers</h1>
+    <AdminShell>
+      <PageTransition className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">Field operations</p>
+        <h1 className="mb-6 text-3xl font-semibold tracking-tight text-ink dark:text-paper">Officer directory</h1>
 
         {error && <p className="text-stamp-red mb-4">{error}</p>}
 
         <form
           onSubmit={handleCreate}
-          className="bg-white dark:bg-board border border-paper-line dark:border-board-line p-4 mb-6 flex flex-wrap gap-3 items-end"
+          className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-paper-line bg-white p-5 dark:border-board-line dark:bg-board"
         >
           <div>
             <label className="block text-xs text-ink-soft mb-1">Name</label>
@@ -162,7 +161,7 @@ export default function AdminOfficers() {
           <button
             type="submit"
             disabled={creating}
-            className="px-4 py-1.5 text-sm bg-ink text-paper hover:bg-ink/90 transition-colors disabled:opacity-50"
+            className="rounded-md bg-civic px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-civic-bright disabled:opacity-50"
           >
             {creating ? 'Adding...' : 'Add Officer'}
           </button>
@@ -242,6 +241,6 @@ export default function AdminOfficers() {
           />
         )}
       </PageTransition>
-    </div>
+    </AdminShell>
   );
 }

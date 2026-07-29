@@ -4,22 +4,74 @@ import PageTransition from '../components/ui/PageTransition';
 import { TicketStub, NoticeCard } from '../components/civic';
 
 const FEATURES = [
-  { icon: '🏷️', title: 'AI Classification', body: 'Every complaint is auto-sorted into a category and routed to the right department.' },
-  { icon: '⏱️', title: 'Priority Detection', body: 'Keyword and category signals flag Critical/High-priority issues for faster response.' },
-  { icon: '🔁', title: 'Duplicate Detection', body: 'Sentence-embedding similarity groups near-identical reports so the same issue isn\'t worked twice.' },
-  { icon: '🗺️', title: 'Hotspot Mapping', body: 'Geo-clustering surfaces neighborhoods with recurring problems on an admin map.' },
-  { icon: '🎙️', title: 'Voice Complaints', body: 'Speak your complaint instead of typing it, using your browser\'s built-in speech recognition.' },
-  { icon: '🚨', title: 'Spam & Fake Detection', body: 'Heuristic checks flag promotional junk, gibberish text, and resubmitted complaints for admin review.' },
-  { icon: '📷', title: 'Photo Analysis', body: 'Uploaded photos are scanned with an object-detection model plus heuristic pothole/garbage/water-logging candidates.' },
-  { icon: '📊', title: 'Resolution Estimates', body: 'A trained regression model gives citizens a realistic time-to-resolution estimate.' },
-  { icon: '💬', title: 'Help Chatbot', body: 'A rule-based assistant answers status and process questions right in the dashboard.' },
+  {
+    icon: '🏷️',
+    title: 'AI Classification',
+    body: 'Every complaint is auto-sorted into a category and routed to the right department.',
+  },
+  {
+    icon: '⏱️',
+    title: 'Priority Detection',
+    body: 'Keyword and category signals flag Critical/High-priority issues for faster response.',
+  },
+  {
+    icon: '🔁',
+    title: 'Duplicate Detection',
+    body: "Sentence-embedding similarity groups near-identical reports so the same issue isn't worked twice.",
+  },
+  {
+    icon: '🗺️',
+    title: 'Hotspot Mapping',
+    body: 'Geo-clustering surfaces neighborhoods with recurring problems on an admin map.',
+  },
+  {
+    icon: '🎙️',
+    title: 'Voice Complaints',
+    body: "Speak your complaint instead of typing it, using your browser's built-in speech recognition.",
+  },
+  {
+    icon: '🚨',
+    title: 'Spam & Fake Detection',
+    body: 'Heuristic checks flag promotional junk, gibberish text, and resubmitted complaints for admin review.',
+  },
+  {
+    icon: '📷',
+    title: 'Photo Analysis',
+    body: 'Uploaded photos are scanned with an object-detection model plus heuristic pothole/garbage/water-logging candidates.',
+  },
+  {
+    icon: '📊',
+    title: 'Resolution Estimates',
+    body: 'A trained regression model gives citizens a realistic time-to-resolution estimate.',
+  },
+  {
+    icon: '💬',
+    title: 'Help Chatbot',
+    body: 'A rule-based assistant answers status and process questions right in the dashboard.',
+  },
 ];
 
 const STEPS = [
-  { n: 1, title: 'Submit', body: 'Describe the issue — by typing or speaking — and optionally attach a photo and location.' },
-  { n: 2, title: 'AI Triage', body: 'The system classifies, prioritizes, and routes it to the right department automatically.' },
-  { n: 3, title: 'Officer Action', body: 'Admins assign a field officer and track the complaint through to resolution.' },
-  { n: 4, title: 'Feedback', body: 'Once resolved, citizens rate the outcome — closing the loop.' },
+  {
+    n: 1,
+    title: 'Submit',
+    body: 'Describe the issue — by typing or speaking — and optionally attach a photo and location.',
+  },
+  {
+    n: 2,
+    title: 'AI Triage',
+    body: 'The system classifies, prioritizes, and routes it to the right department automatically.',
+  },
+  {
+    n: 3,
+    title: 'Officer Action',
+    body: 'Admins assign a field officer and track the complaint through to resolution.',
+  },
+  {
+    n: 4,
+    title: 'Feedback',
+    body: 'Once resolved, citizens rate the outcome — closing the loop.',
+  },
 ];
 
 export default function Landing() {
@@ -28,72 +80,124 @@ export default function Landing() {
       <PublicNav />
 
       <PageTransition>
-        <section className="city-hero min-h-[650px] mx-auto px-6 pt-28 pb-32 text-left">
-          <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-3">Civic Grievance Platform</p>
-          <h1 className="max-w-xl text-5xl sm:text-7xl font-display font-bold tracking-tight text-[#f7fafc] mb-4">
-            See a problem. Start a change.
-          </h1>
-          <p className="text-ink-soft max-w-2xl mx-auto mb-8">
-            Civic AI takes a citizen complaint about roads, water, electricity, garbage, or safety and uses machine
-            learning to classify it, prioritize it, and get it in front of the right department — with full tracking
-            from submission to resolution.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link to="/register" className="px-5 py-2.5 bg-ink text-paper hover:bg-ink/90 transition-colors font-medium">
-              Register as Citizen
-            </Link>
-            <Link
-              to="/login"
-              className="px-5 py-2.5 border border-ink/30 dark:border-paper-line/30 text-ink dark:text-paper hover:border-brass transition-colors font-medium"
-            >
-              Citizen Login
-            </Link>
-            <Link to="/admin/login" className="px-5 py-2.5 text-sm text-ink-soft underline hover:text-brass">
-              Admin login
-            </Link>
+        <section className="city-hero relative min-h-[650px] px-6 pb-32 pt-28 text-left">
+          <div className="absolute inset-0 bg-[#0b1424]/45" />
+
+          <div className="relative mx-auto max-w-7xl">
+            <p className="mb-4 inline-flex rounded-full bg-civic-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-civic dark:bg-civic/20 dark:text-seal-green">
+              AI-powered governance
+            </p>
+
+            <h1 className="mb-5 max-w-3xl text-4xl font-bold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl">
+              Empowering Indian cities with AI-driven civic action.
+            </h1>
+
+            <p className="mb-8 max-w-2xl text-lg leading-8 text-white/80">
+              Civic AI takes a citizen complaint about roads, water,
+              electricity, garbage, or safety and uses machine learning to
+              classify it, prioritize it, and get it in front of the right
+              department — with full tracking from submission to resolution.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                to="/register"
+                className="rounded-md bg-civic px-5 py-3 font-semibold text-white transition-colors hover:bg-civic-bright"
+              >
+                Submit a complaint
+              </Link>
+
+              <Link
+                to="/login"
+                className="rounded-md border border-white/30 bg-white/10 px-5 py-3 font-semibold text-white backdrop-blur transition-colors hover:bg-white/20"
+              >
+                Citizen Login
+              </Link>
+
+              <Link
+                to="/admin/login"
+                className="px-4 py-3 text-sm font-medium text-white/80 hover:text-white"
+              >
+                Staff portal
+              </Link>
+            </div>
           </div>
         </section>
 
-        <section className="max-w-6xl mx-auto px-6 py-10 border-t border-paper-line dark:border-board-line">
-          <h2 className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-6 text-center">What's under the hood</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map((f) => (
-              <NoticeCard key={f.title} pin={false} className="h-full">
-                <div className="flex items-start gap-3">
-                  <span className="text-xl leading-none">{f.icon}</span>
-                  <div>
-                    <h3 className="text-sm font-medium text-ink dark:text-paper mb-1">{f.title}</h3>
-                    <p className="text-xs text-ink-soft leading-relaxed">{f.body}</p>
+        <section className="border-y border-paper-line bg-white py-14 dark:border-board-line dark:bg-board">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <h2 className="mb-8 text-center text-2xl font-semibold tracking-tight text-ink dark:text-paper">
+              Built for transparent civic action
+            </h2>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map((f) => (
+                <NoticeCard key={f.title} pin={false} className="h-full">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl leading-none">{f.icon}</span>
+
+                    <div>
+                      <h3 className="mb-1 text-sm font-medium text-ink dark:text-paper">
+                        {f.title}
+                      </h3>
+
+                      <p className="text-xs leading-relaxed text-ink-soft">
+                        {f.body}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </NoticeCard>
-            ))}
+                </NoticeCard>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className="max-w-5xl mx-auto px-6 py-10 border-t border-paper-line dark:border-board-line">
-          <h2 className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-6 text-center">How it works</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+          <h2 className="mb-8 text-center text-2xl font-semibold tracking-tight text-ink dark:text-paper">
+            How it works
+          </h2>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((s) => (
               <TicketStub key={s.n} number={s.n} className="h-full">
-                <h3 className="text-sm font-medium text-ink dark:text-paper mb-1 mt-2">{s.title}</h3>
-                <p className="text-xs text-ink-soft leading-relaxed">{s.body}</p>
+                <h3 className="mb-1 mt-2 text-sm font-medium text-ink dark:text-paper">
+                  {s.title}
+                </h3>
+
+                <p className="text-xs leading-relaxed text-ink-soft">
+                  {s.body}
+                </p>
               </TicketStub>
             ))}
           </div>
         </section>
 
-        <section className="max-w-3xl mx-auto px-6 py-12 text-center border-t border-paper-line dark:border-board-line">
-          <h2 className="text-xl font-display font-semibold text-ink dark:text-paper mb-3">Ready to report something?</h2>
-          <p className="text-sm text-ink-soft mb-6">Registration takes under a minute — no department knowledge required.</p>
-          <Link to="/register" className="inline-block px-6 py-2.5 bg-ink text-paper hover:bg-ink/90 transition-colors font-medium">
+        <section className="mx-auto max-w-3xl border-t border-paper-line px-6 py-12 text-center dark:border-board-line">
+          <h2 className="mb-3 text-xl font-display font-semibold text-ink dark:text-paper">
+            Ready to report something?
+          </h2>
+
+          <p className="mb-6 text-sm text-ink-soft">
+            Registration takes under a minute — no department knowledge
+            required.
+          </p>
+
+          <Link
+            to="/register"
+            className="inline-block bg-ink px-6 py-2.5 font-medium text-paper transition-colors hover:bg-ink/90"
+          >
             Get Started
           </Link>
         </section>
 
-        <footer className="border-t border-paper-line dark:border-board-line py-6 text-center">
+        <footer className="border-t border-paper-line py-6 text-center dark:border-board-line">
           <p className="text-xs text-ink-soft">
-            <Link to="/about" className="underline hover:text-brass">About this project</Link>
+            <Link
+              to="/about"
+              className="underline hover:text-brass"
+            >
+              About this project
+            </Link>
           </p>
         </footer>
       </PageTransition>

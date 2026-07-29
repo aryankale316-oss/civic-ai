@@ -62,10 +62,10 @@ export default function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ duration: 0.2 }}
-            className="mb-3 w-80 sm:w-96 h-[28rem] bg-white dark:bg-board border border-paper-line dark:border-board-line flex flex-col overflow-hidden"
+            className="mb-3 flex h-[30rem] w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-xl border border-paper-line bg-white shadow-xl dark:border-board-line dark:bg-board sm:w-96"
           >
-            <div className="flex items-center justify-between px-4 py-3 bg-ink text-paper">
-              <span className="text-sm font-display uppercase tracking-wide">Civic AI Assistant</span>
+            <div className="flex items-center justify-between bg-civic px-4 py-3 text-white">
+              <div><span className="text-sm font-semibold">Civic AI Assistant</span><p className="text-[10px] text-white/75">Automated process support</p></div>
               <button onClick={() => setOpen(false)} className="text-paper/70 hover:text-paper text-sm" aria-label="Close chat">
                 ✕
               </button>
@@ -88,12 +88,12 @@ export default function ChatWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1 px-3 py-1.5 text-sm border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper focus:outline-none focus:ring-2 focus:ring-brass placeholder:text-ink-soft"
+                className="flex-1 rounded-md border border-paper-line bg-white px-3 py-2 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/15 dark:border-board-line dark:bg-board-line dark:text-paper"
               />
               <button
                 type="submit"
                 disabled={sending || !input.trim()}
-                className="px-3 py-1.5 text-sm bg-ink text-paper hover:bg-ink/90 transition-colors disabled:opacity-50"
+                className="rounded-md bg-civic px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-civic-bright disabled:opacity-50"
               >
                 Send
               </button>
@@ -106,7 +106,7 @@ export default function ChatWidget() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen((o) => !o)}
-        className="w-14 h-14 rounded-full bg-ink text-paper text-2xl hover:bg-ink/90 flex items-center justify-center"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-civic text-2xl text-white shadow-lg hover:bg-civic-bright"
         aria-label={open ? 'Close chat assistant' : 'Open chat assistant'}
       >
         {open ? '✕' : '💬'}

@@ -140,8 +140,8 @@ export default function ComplaintDetail() {
   return (
     <div className="min-h-screen bg-paper dark:bg-board">
       <Navbar />
-      <PageTransition className="max-w-2xl mx-auto px-6 py-8">
-        <Link to={backTo} className="text-sm text-ink-soft hover:text-ink dark:hover:text-paper">
+      <PageTransition className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-12">
+        <Link to={backTo} className="text-sm font-medium text-civic hover:underline dark:text-seal-green">
           {backLabel}
         </Link>
 
@@ -154,10 +154,10 @@ export default function ComplaintDetail() {
 
         {complaint && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <NoticeCard className="mt-4" pin={false}>
-              <p className="font-mono text-xs text-stamp-red mb-1">№ {complaint.id}</p>
+            <NoticeCard className="mt-5 p-5 sm:p-8" pin={false}>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-civic dark:text-seal-green">CIV-{String(complaint.id).padStart(5, '0')}</p>
               <div className="flex items-start justify-between gap-3 mb-4">
-                <h1 className="text-xl font-display font-semibold text-ink dark:text-paper">{complaint.title}</h1>
+                <h1 className="text-2xl font-semibold tracking-tight text-ink dark:text-paper sm:text-3xl">{complaint.title}</h1>
               </div>
 
               <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-2">Ticket status</p>

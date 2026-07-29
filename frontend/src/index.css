@@ -2,11 +2,8 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* "The Ticket" civic design system — see design brief. Paper/ink for light
-   mode, the split-flap board casing for dark mode. Radii are pulled in
-   small everywhere (2-4px) so every existing rounded-lg/xl/2xl utility in
-   the app reads as an official/paper material instead of a rounded
-   consumer app, with no per-component edits required. */
+/* Civic AI structural system. Legacy token names stay available so existing
+   screens can migrate to the Stitch visual language incrementally. */
 @theme {
   --color-paper: #f6f9fc;
   --color-paper-warm: #edf5f6;
@@ -18,69 +15,149 @@
   --color-stamp-red: #d85d65;
   --color-seal-green: #087f73;
   --color-brass: #55e0ce;
-  /* Not in the base palette — StatusFlap needs a 4th "in progress" tone
-     distinct from brass (received) and stamp-red (critical/rejected). */
   --color-flap-amber: #c68a2e;
+
+  --color-civic: #00685f;
+  --color-civic-bright: #008378;
+  --color-civic-soft: #d8f3ef;
+  --color-ai-soft: #f5f3ff;
+  --color-ai: #65558f;
 
   --font-display: "Inter", ui-sans-serif, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
   --font-sans: "IBM Plex Sans", ui-sans-serif, sans-serif;
 
   --radius-xs: 2px;
-  --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: 4px;
-  --radius-xl: 4px;
-  --radius-2xl: 4px;
-  --radius-3xl: 4px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
 }
 
 body {
   margin: 0;
   font-family: var(--font-sans);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
 }
 
-.city-hero { background: #0b1424 url('/images/civic-city-hero.png') right center / cover no-repeat; }
-@media (max-width: 768px) { .city-hero { background-position: 62% center; } }
+.city-hero {
+  background: #0b1424 url('/images/civic-city-hero.png') right center / cover no-repeat;
+}
 
-.admin-page { background: #0b1424; color: #f7fafc; }
-.admin-page .bg-white { background: #142238; }
-.admin-page .text-ink, .admin-page h1, .admin-page h2, .admin-page h3 { color: #f7fafc; }
-.admin-page .text-ink-soft { color: #a6b6c8; }
-.admin-page .border-paper-line { border-color: #263750; }
-.admin-page input, .admin-page select, .admin-page textarea { background: #0b1424; border-color: #263750; color: #f7fafc; }
+@media (max-width: 768px) {
+  .city-hero {
+    background-position: 62% center;
+  }
+}
+
+.admin-page {
+  background: #0b1424;
+  color: #f7fafc;
+}
+
+.admin-page .bg-white {
+  background: #142238;
+}
+
+.admin-page .text-ink,
+.admin-page h1,
+.admin-page h2,
+.admin-page h3 {
+  color: #f7fafc;
+}
+
+.admin-page .text-ink-soft {
+  color: #a6b6c8;
+}
+
+.admin-page .border-paper-line {
+  border-color: #263750;
+}
+
+.admin-page input,
+.admin-page select,
+.admin-page textarea {
+  background: #0b1424;
+  border-color: #263750;
+  color: #f7fafc;
+}
 
 html.dark {
   color-scheme: dark;
+
   /* text-ink-soft/stamp-red/seal-green are used as body/status text
      throughout without per-component dark: variants — their base hues only
      clear ~3:1 against the board casing, short of WCAG AA's 4.5:1 for
      normal text. Overriding the tokens here fixes every usage at once.
      Verified via WCAG relative-luminance contrast against #14171c:
      ink-soft 5.8:1, stamp-red 5.5:1, seal-green 5.4:1. */
-  --color-ink-soft: #8b93a0;
-  --color-stamp-red: #e06b5e;
-  --color-seal-green: #4f9c74;
+  --color-ink-soft: #aeb8b6;
+  --color-paper: #111827;
+  --color-paper-warm: #1b2432;
+  --color-paper-line: #334155;
+  --color-stamp-red: #ffb4ab;
+  --color-seal-green: #6bd8cb;
+  --color-brass: #ffb95f;
 }
 
 /* One coherent dark application shell: public, citizen, and admin screens
    all share the same midnight surfaces instead of inheriting mixed cards. */
-html.dark body { background: #0b1424; color: #f7fafc; }
-html.dark .bg-paper { background-color: #0b1424 !important; }
-html.dark .bg-paper-warm { background-color: #142238 !important; }
-html.dark .bg-white { background-color: #142238 !important; }
-html.dark .border-paper-line { border-color: #263750 !important; }
-html.dark .text-ink { color: #f7fafc !important; }
-html.dark .text-ink-soft { color: #a6b6c8 !important; }
-html.dark input, html.dark textarea, html.dark select { background-color: #0b1424 !important; border-color: #263750 !important; color: #f7fafc !important; }
-html.dark option { background: #142238; color: #f7fafc; }
-html.dark .ticket-stub { background: #142238; }
+html.dark body {
+  background: #0b1424;
+  color: #f7fafc;
+}
+
+html.dark .bg-paper {
+  background-color: #0b1424 !important;
+}
+
+html.dark .bg-paper-warm {
+  background-color: #142238 !important;
+}
+
+html.dark .bg-white {
+  background-color: #142238 !important;
+}
+
+html.dark .border-paper-line {
+  border-color: #263750 !important;
+}
+
+html.dark .text-ink {
+  color: #f7fafc !important;
+}
+
+html.dark .text-ink-soft {
+  color: #a6b6c8 !important;
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #0b1424 !important;
+  border-color: #263750 !important;
+  color: #f7fafc !important;
+}
+
+html.dark option {
+  background: #142238;
+  color: #f7fafc;
+}
+
+html.dark .ticket-stub {
+  background: #142238;
+}
 
 @keyframes fade-in-up {
   from {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -95,20 +172,31 @@ html.dark .ticket-stub { background: #142238; }
   0% {
     background-position: -400px 0;
   }
+
   100% {
     background-position: 400px 0;
   }
 }
 
 .animate-shimmer {
-  background-image: linear-gradient(90deg, transparent, rgba(28, 43, 69, 0.08), transparent);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgba(28, 43, 69, 0.08),
+    transparent
+  );
   background-size: 400px 100%;
   background-repeat: no-repeat;
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
 .dark .animate-shimmer {
-  background-image: linear-gradient(90deg, transparent, rgba(238, 240, 234, 0.06), transparent);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgba(238, 240, 234, 0.06),
+    transparent
+  );
 }
 
 /* Split-flap flip — the one place motion beyond a subtle fade is allowed,
@@ -117,12 +205,15 @@ html.dark .ticket-stub { background: #142238; }
   0% {
     transform: rotateX(0deg);
   }
+
   45% {
     transform: rotateX(-90deg);
   }
+
   55% {
     transform: rotateX(-90deg);
   }
+
   100% {
     transform: rotateX(0deg);
   }

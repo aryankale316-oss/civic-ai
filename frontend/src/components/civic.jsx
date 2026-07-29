@@ -7,12 +7,12 @@ import { Link } from 'react-router-dom';
  * StatusFlap's own flip animation.
  */
 
-const TONE_BAR = {
-  brass: 'bg-brass',
-  'flap-amber': 'bg-flap-amber',
-  'seal-green': 'bg-seal-green',
-  'stamp-red': 'bg-stamp-red',
-  'ink-soft': 'bg-ink-soft',
+const TONE_CHIP = {
+  brass: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800',
+  'flap-amber': 'bg-orange-50 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800',
+  'seal-green': 'bg-civic-soft text-civic border-civic/20 dark:bg-civic/20 dark:text-seal-green dark:border-seal-green/30',
+  'stamp-red': 'bg-red-50 text-stamp-red border-red-200 dark:bg-red-950/40 dark:text-stamp-red dark:border-red-900',
+  'ink-soft': 'bg-paper-warm text-ink-soft border-paper-line dark:bg-board-line dark:border-board-line',
 };
 
 // Border only — StampBadge text always stays high-contrast ink/paper
@@ -55,7 +55,7 @@ export function TicketStub({ number, children, to, className = '' }) {
 export function NoticeCard({ children, className = '', pin = true, title, ...rest }) {
   return (
     <div
-      className={`relative bg-white dark:bg-board border border-paper-line dark:border-board-line px-4 py-4 ${className}`}
+      className={`relative rounded-lg border border-paper-line bg-white px-5 py-5 dark:border-board-line dark:bg-board ${className}`}
       {...rest}
     >
       {pin && <span className="absolute -top-1.5 -left-1.5 w-2.5 h-2.5 rounded-full bg-brass border border-paper dark:border-board" />}
@@ -65,11 +65,7 @@ export function NoticeCard({ children, className = '', pin = true, title, ...res
   );
 }
 
-/**
- * The single rendering path for every status/priority/sentiment badge in
- * the app. Always a dark "board" chip (per spec) with a tone bar on the
- * left edge; plays the split-flap animation whenever its label changes.
- */
+/** Shared semantic chip used for status, priority, and sentiment values. */
 export function StatusFlap({ label, tone = 'ink-soft', className = '' }) {
   const [playing, setPlaying] = useState(false);
   const isFirstRender = useRef(true);
@@ -86,11 +82,12 @@ export function StatusFlap({ label, tone = 'ink-soft', className = '' }) {
 
   return (
     <span
-      className={`relative inline-flex items-center pl-3 pr-2 py-0.5 bg-board text-paper border border-board-line font-mono text-[11px] uppercase tracking-wide leading-normal ${
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-wide leading-none ${
+        TONE_CHIP[tone] || TONE_CHIP['ink-soft']
+      } ${
         playing ? 'flap-flip' : ''
       } ${className}`}
     >
-      <span className={`absolute left-0 top-0 bottom-0 w-1 ${TONE_BAR[tone] || TONE_BAR['ink-soft']}`} />
       {label}
     </span>
   );
@@ -118,16 +115,16 @@ export function StampBadge({ label, tone = 'seal-green', size = 80, className = 
 export function MetricRow({ metrics, className = '' }) {
   return (
     <div
-      className={`grid grid-cols-2 sm:grid-cols-3 border-t border-b border-paper-line dark:border-board-line divide-x divide-y sm:divide-y-0 divide-paper-line dark:divide-board-line ${className}`}
+      className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${className}`}
     >
       {metrics.map((m, i) => (
-        <div key={i} className="px-4 py-4 sm:py-5">
-          <p className="font-mono text-2xl text-ink dark:text-paper">{m.unavailable ? '—' : m.value}</p>
-          <p className="text-[11px] uppercase tracking-wide text-ink-soft mt-1">{m.label}</p>
+        <div key={i} className="rounded-lg border border-paper-line bg-white px-4 py-4 dark:border-board-line dark:bg-board sm:py-5">
+          <p className="text-2xl font-semibold tracking-tight text-ink dark:text-paper">{m.unavailable ? '—' : m.value}</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-ink-soft">{m.label}</p>
           {m.ratio != null && (
-            <div className="h-1 bg-paper-warm dark:bg-board-line mt-2">
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-paper-warm dark:bg-board-line">
               <div
-                className="h-1 bg-brass transition-all duration-500"
+                className="h-1.5 rounded-full bg-civic transition-all duration-500"
                 style={{ width: `${Math.round(Math.max(0, Math.min(1, m.ratio)) * 100)}%` }}
               />
             </div>

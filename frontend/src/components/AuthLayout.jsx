@@ -1,31 +1,58 @@
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
-export default function AuthLayout({ title, subtitle, children }) {
+export default function AuthLayout({ title, subtitle, children, staff = false }) {
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-paper">
-      <div className="hidden lg:flex city-hero relative items-end p-14">
-        <div className="absolute inset-0 bg-[#0b1424]/50" />
-        <p className="relative max-w-md text-3xl font-display font-semibold leading-tight text-white">“Better cities begin when every voice can be heard.”</p>
-      </div>
-      <div className="flex items-center justify-center px-5 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="w-full max-w-md"
-      >
-        <div className="text-center mb-6">
-          <span className="inline-block font-display font-bold text-2xl tracking-tight text-ink">
-            CIVIC <span className="text-seal-green">AI</span>
-          </span>
+    <div className="min-h-screen bg-paper dark:bg-board">
+      <header className="flex h-16 items-center justify-between border-b border-paper-line bg-white px-5 dark:border-board-line dark:bg-board sm:px-10">
+        <Link to="/" className="text-xl font-bold text-civic dark:text-seal-green">
+          Civic AI
+        </Link>
+        <p className="hidden text-sm font-medium text-ink-soft sm:block">
+          Transparency through innovation
+        </p>
+      </header>
+
+      <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
+        <div className="hidden city-hero relative items-end p-14 lg:flex">
+          <div className="absolute inset-0 bg-[#0b1424]/50" />
+          <p className="relative max-w-md text-3xl font-display font-semibold leading-tight text-white">
+            “Better cities begin when every voice can be heard.”
+          </p>
         </div>
-        <div className="bg-white rounded-2xl border border-paper-line p-8 shadow-xl shadow-[#0b1424]/5">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-seal-green">Citizen portal</p>
-          <h1 className="mt-2 text-2xl font-semibold text-ink">{title}</h1>
-          {subtitle && <p className="text-sm text-ink-soft mt-1">{subtitle}</p>}
-          <div className="mt-6">{children}</div>
+
+        <div className="flex items-center justify-center px-4 py-10 sm:px-10">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="w-full max-w-lg"
+          >
+            <div className="rounded-lg border border-paper-line bg-white p-7 shadow-sm dark:border-board-line dark:bg-board sm:p-10">
+              {staff && (
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">
+                  Authorized staff portal
+                </p>
+              )}
+
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-seal-green">
+                {staff ? 'Staff portal' : 'Citizen portal'}
+              </p>
+
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink dark:text-paper">
+                {title}
+              </h1>
+
+              {subtitle && (
+                <p className="mt-2 text-base leading-6 text-ink-soft">
+                  {subtitle}
+                </p>
+              )}
+
+              <div className="mt-8">{children}</div>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
       </div>
     </div>
   );

@@ -75,16 +75,16 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => !disabled && inputRef.current?.click()}
-        className={`flex flex-col items-center justify-center gap-1 border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${
+        className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors ${
           disabled
             ? 'opacity-50 cursor-not-allowed border-paper-line dark:border-board-line'
             : isDragging
-            ? 'border-brass bg-paper-warm dark:bg-board-line'
-            : 'border-paper-line dark:border-board-line hover:border-brass'
+            ? 'border-civic bg-civic-soft dark:bg-civic/10'
+            : 'border-paper-line bg-paper-warm/50 hover:border-civic dark:border-board-line dark:bg-board-line/30'
         }`}
       >
         <p className="text-sm text-ink-soft">
-          <span className="font-medium text-ink dark:text-paper">Click to upload</span> or drag and drop
+          <span className="font-semibold text-civic dark:text-seal-green">Click to upload</span> or drag and drop
         </p>
         <p className="text-xs text-ink-soft">JPEG, PNG, WEBP or GIF, up to 5MB each (max {maxFiles})</p>
         <input
@@ -110,7 +110,7 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
               <img
                 src={getPreviewUrl(file)}
                 alt={file.name}
-                className="w-full aspect-square object-cover border border-paper-line dark:border-board-line"
+                className="aspect-square w-full rounded-md border border-paper-line object-cover dark:border-board-line"
               />
               {!disabled && (
                 <button

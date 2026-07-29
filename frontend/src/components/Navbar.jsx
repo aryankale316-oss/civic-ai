@@ -27,9 +27,9 @@ function ThemeToggle() {
     <button
       onClick={toggleTheme}
       aria-label="Toggle dark mode"
-      className="w-8 h-8 flex items-center justify-center text-ink-soft hover:bg-paper-warm dark:hover:bg-board-line transition-colors"
+      className="flex h-9 w-9 items-center justify-center rounded-md text-xs font-semibold text-ink-soft transition-colors hover:bg-paper-warm dark:hover:bg-board-line"
     >
-      {theme === 'dark' ? '☀️' : '🌙'}
+      {theme === 'dark' ? 'L' : 'D'}
     </button>
   );
 }
@@ -57,7 +57,7 @@ function UserMenu({ user, onLogout }) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-8 h-8 rounded-full border border-ink dark:border-paper-line text-ink dark:text-paper text-xs font-mono font-semibold flex items-center justify-center hover:bg-paper-warm dark:hover:bg-board-line transition-colors"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-civic text-xs font-semibold text-white transition-colors hover:bg-civic-bright"
         aria-label="Account menu"
       >
         {initials}
@@ -69,7 +69,7 @@ function UserMenu({ user, onLogout }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-48 bg-white dark:bg-board border border-paper-line dark:border-board-line overflow-hidden z-50"
+            className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-lg border border-paper-line bg-white shadow-lg dark:border-board-line dark:bg-board"
           >
             <div className="px-4 py-3 border-b border-paper-line dark:border-board-line">
               <p className="text-sm font-medium text-ink dark:text-paper truncate">{user.name}</p>
@@ -112,12 +112,12 @@ export default function Navbar() {
     user?.role === 'admin' ? ADMIN_LINKS : user?.role === 'dept_admin' ? DEPT_ADMIN_LINKS : user?.role === 'citizen' ? CITIZEN_LINKS : [];
 
   return (
-    <nav className="sticky top-0 z-40 bg-paper dark:bg-board border-b border-paper-line dark:border-board-line">
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+    <nav className="sticky top-0 z-40 border-b border-paper-line bg-white/95 backdrop-blur dark:border-board-line dark:bg-board/95">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-6">
           <Link
             to={isStaff ? '/admin/dashboard' : '/dashboard'}
-            className="font-display font-bold text-xl uppercase tracking-wide text-ink dark:text-paper"
+            className="text-xl font-bold tracking-tight text-civic dark:text-seal-green"
           >
             Civic AI
           </Link>
@@ -130,9 +130,9 @@ export default function Navbar() {
                   <Link
                     key={link.to}
                     to={link.to}
-                    className={`px-3 py-1.5 text-sm border-b-2 transition-colors ${
+                    className={`border-b-2 px-3 py-5 text-sm font-medium transition-colors ${
                       active
-                        ? 'border-brass text-ink dark:text-paper font-medium'
+                        ? 'border-civic text-civic dark:border-seal-green dark:text-seal-green'
                         : 'border-transparent text-ink-soft hover:text-ink dark:hover:text-paper'
                     }`}
                   >
@@ -149,7 +149,7 @@ export default function Navbar() {
             <>
               <button
                 onClick={() => setMobileOpen((o) => !o)}
-                className="md:hidden w-8 h-8 flex items-center justify-center text-ink-soft hover:bg-paper-warm dark:hover:bg-board-line"
+                className="flex h-9 w-9 items-center justify-center rounded-md text-ink-soft hover:bg-paper-warm md:hidden dark:hover:bg-board-line"
                 aria-label="Toggle menu"
               >
                 {mobileOpen ? '✕' : '☰'}

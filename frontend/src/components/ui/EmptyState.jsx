@@ -5,7 +5,7 @@ export default function EmptyState({ icon = '📭', title, description, action }
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center text-center py-16 px-6"
+      className="flex flex-col items-center justify-center rounded-lg border border-dashed border-paper-line bg-white/50 px-6 py-16 text-center dark:border-board-line dark:bg-board/50"
     >
       <span className="text-4xl mb-3">{icon}</span>
       <p className="text-base font-medium text-ink dark:text-paper">{title}</p>

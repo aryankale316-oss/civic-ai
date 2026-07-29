@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import apiClient from '../api/client';
 import Navbar from '../components/Navbar';
 import { PriorityBadge, StatusBadge } from '../components/Badges';
-import { TicketStub } from '../components/civic';
 import { SkeletonRows } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import FloatingActionButton from '../components/ui/FloatingActionButton';
@@ -26,17 +25,18 @@ export default function CitizenDashboard() {
   return (
     <div className="min-h-screen bg-paper dark:bg-board">
       <Navbar />
-      <PageTransition className="max-w-4xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
+      <PageTransition className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
+        <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-ink-soft font-mono">Ticket window</p>
-            <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper">My Complaints</h1>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">Citizen dashboard</p>
+            <h1 className="text-3xl font-semibold tracking-tight text-ink dark:text-paper">My complaints</h1>
+            <p className="mt-2 text-sm text-ink-soft">Track every report from submission through resolution.</p>
           </div>
           <Link
             to="/complaints/new"
-            className="hidden sm:inline-block px-4 py-2 bg-ink text-paper text-sm hover:bg-ink/90 transition-colors"
+            className="hidden rounded-md bg-civic px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-civic-bright sm:inline-block"
           >
-            + New Complaint
+            New complaint
           </Link>
         </div>
 
@@ -63,7 +63,23 @@ export default function CitizenDashboard() {
           />
         )}
 
-        <div className="space-y-4">
+        {complaints.length > 0 && (
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              ['Total', complaints.length],
+              ['Submitted', complaints.filter((c) => c.status === 'submitted').length],
+              ['In progress', complaints.filter((c) => c.status === 'in_progress').length],
+              ['Resolved', complaints.filter((c) => c.status === 'resolved').length],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border border-paper-line bg-white p-4 dark:border-board-line dark:bg-board">
+                <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">{label}</p>
+                <p className="mt-2 text-2xl font-semibold text-ink dark:text-paper">{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="grid gap-4 md:grid-cols-2">
           {complaints.map((c, i) => (
             <motion.div
               key={c.id}
@@ -71,18 +87,21 @@ export default function CitizenDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: i * 0.04 }}
             >
-              <TicketStub number={c.id} to={`/complaints/${c.id}`} className="hover:border-brass transition-colors">
-                <div className="flex items-center justify-between mb-1 mt-1">
-                  <h2 className="font-medium text-ink dark:text-paper">{c.title}</h2>
+              <Link to={`/complaints/${c.id}`} className="block rounded-lg border border-paper-line bg-white p-5 transition-colors hover:border-civic/50 hover:bg-civic-soft/20 dark:border-board-line dark:bg-board dark:hover:bg-civic/10">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="mb-1 text-xs font-semibold text-civic dark:text-seal-green">CIV-{String(c.id).padStart(5, '0')}</p>
+                    <h2 className="font-semibold text-ink dark:text-paper">{c.title}</h2>
+                  </div>
                   <StatusBadge status={c.status} />
                 </div>
-                <p className="text-sm text-ink-soft line-clamp-2 mb-2">{c.description}</p>
-                <div className="flex items-center gap-2 text-xs text-ink-soft font-mono">
+                <p className="mb-4 line-clamp-2 text-sm leading-6 text-ink-soft">{c.description}</p>
+                <div className="flex flex-wrap items-center gap-2 border-t border-paper-line pt-3 text-xs text-ink-soft dark:border-board-line">
                   {c.department_name && <span>{c.department_name}</span>}
                   <PriorityBadge priority={c.ai_priority} />
-                  <span>{new Date(c.created_at).toLocaleDateString()}</span>
+                  <span className="ml-auto">{new Date(c.created_at).toLocaleDateString()}</span>
                 </div>
-              </TicketStub>
+              </Link>
             </motion.div>
           ))}
         </div>

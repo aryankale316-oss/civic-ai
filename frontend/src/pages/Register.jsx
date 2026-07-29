@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext';
 import AuthLayout from '../components/AuthLayout';
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper focus:outline-none focus:ring-2 focus:ring-brass';
+  'w-full rounded-md border border-paper-line bg-white px-4 py-3 text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/15 dark:border-board-line dark:bg-board-line dark:text-paper';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -37,42 +37,44 @@ export default function Register() {
   }
 
   return (
-    <AuthLayout title="Citizen Registration" subtitle="Create an account to submit complaints">
+    <AuthLayout title="Create your account" subtitle="Join Civic AI to report, follow, and resolve issues in your community.">
       <form onSubmit={handleSubmit}>
-        {error && <p className="text-sm text-stamp-red mb-4">{error}</p>}
+        {error && <p className="mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-stamp-red">{error}</p>}
 
-        <label className="block text-sm text-ink-soft mb-1">Name</label>
-        <input required value={name} onChange={(e) => setName(e.target.value)} className={`${INPUT_CLASS} mb-4`} />
+        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">Full name</label>
+        <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className={`${INPUT_CLASS} mb-5`} />
 
-        <label className="block text-sm text-ink-soft mb-1">Email</label>
+        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">Email address</label>
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={`${INPUT_CLASS} mb-4`}
+          placeholder="citizen@example.com"
+          className={`${INPUT_CLASS} mb-5`}
         />
 
-        <label className="block text-sm text-ink-soft mb-1">Password</label>
+        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">Password</label>
         <input
           type="password"
           required
           minLength={6}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          placeholder="Minimum 6 characters"
           className={`${INPUT_CLASS} mb-6`}
         />
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 bg-ink text-paper hover:bg-ink/90 transition-colors disabled:opacity-50"
+          className="w-full rounded-md bg-civic py-3 font-semibold text-white transition-colors hover:bg-civic-bright disabled:opacity-50"
         >
           {loading ? 'Creating account...' : 'Register'}
         </button>
 
-        <p className="text-sm text-ink-soft mt-4 text-center">
-          Already have an account? <Link to="/login" className="text-ink dark:text-paper underline hover:text-brass">Log in</Link>
+        <p className="mt-6 border-t border-paper-line pt-6 text-center text-sm text-ink-soft dark:border-board-line">
+          Already have an account? <Link to="/login" className="font-semibold text-civic hover:underline dark:text-seal-green">Log in</Link>
         </p>
       </form>
     </AuthLayout>

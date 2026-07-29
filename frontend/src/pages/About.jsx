@@ -65,8 +65,8 @@ export default function About() {
     <div className="min-h-screen bg-paper dark:bg-board">
       <PublicNav />
 
-      <PageTransition className="max-w-4xl mx-auto px-6 py-12">
-        <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-2">About</p>
+      <PageTransition className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:py-16">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">Transparency report</p>
         <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-4">What Civic AI is</h1>
         <p className="text-ink-soft leading-relaxed mb-6">
           Civic AI is a vertical slice of a civic grievance-redressal platform: a citizen submits a complaint, a set

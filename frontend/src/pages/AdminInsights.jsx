@@ -1,7 +1,8 @@
+
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../api/client';
-import Navbar from '../components/Navbar';
+import AdminShell from '../components/AdminShell';
 import { MetricRow, NoticeCard } from '../components/civic';
 import ChartCard from '../components/charts/ChartCard';
 import SingleSeriesBarChart from '../components/charts/SingleSeriesBarChart';
@@ -21,65 +22,138 @@ export default function AdminInsights() {
   }, []);
 
   return (
-    <div className="admin-page min-h-screen">
-      <Navbar />
-      <PageTransition className="max-w-6xl mx-auto px-6 py-8">
-        <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">Back office</p>
-        <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-6">AI Insights</h1>
+    <AdminShell>
+      <PageTransition className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">
+          Decision support
+        </p>
 
-        {error && <p className="text-stamp-red mb-4">{error}</p>}
+        <h1 className="mb-6 text-3xl font-display font-semibold text-ink dark:text-paper">
+          AI Insights
+        </h1>
+
+        {error && (
+          <p className="mb-4 text-stamp-red">{error}</p>
+        )}
+
         {!data && !error && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
         )}
 
         {data && (
           <>
             <MetricRow
-              className="sm:grid-cols-4 mb-6"
+              className="mb-6 sm:grid-cols-4"
               metrics={[
                 {
                   label: 'Avg. classification confidence',
-                  value: data.classification_confidence.overall != null ? `${Math.round(data.classification_confidence.overall * 100)}%` : '—',
+                  value:
+                    data.classification_confidence.overall != null
+                      ? `${Math.round(
+                          data.classification_confidence.overall * 100
+                        )}%`
+                      : '—',
                   note: data.classification_confidence.note,
                 },
                 {
                   label: 'Complaint growth (MoM)',
-                  value: data.complaint_growth.growth_pct != null ? `${data.complaint_growth.growth_pct >= 0 ? '+' : ''}${data.complaint_growth.growth_pct.toFixed(0)}%` : '—',
-                  note: data.complaint_growth.growth_pct == null ? 'Not enough months of data yet' : `${data.complaint_growth.current_month?.count ?? 0} this month`,
+                  value:
+                    data.complaint_growth.growth_pct != null
+                      ? `${
+                          data.complaint_growth.growth_pct >= 0
+                            ? '+'
+                            : ''
+                        }${data.complaint_growth.growth_pct.toFixed(0)}%`
+                      : '—',
+                  note:
+                    data.complaint_growth.growth_pct == null
+                      ? 'Not enough months of data yet'
+                      : `${
+                          data.complaint_growth.current_month?.count ?? 0
+                        } this month`,
                 },
                 {
-                  label: `Forecast${data.monthly_forecast.month ? ` (${data.monthly_forecast.month})` : ''}`,
-                  value: data.monthly_forecast.predicted_count != null ? data.monthly_forecast.predicted_count.toLocaleString() : '—',
+                  label: `Forecast${
+                    data.monthly_forecast.month
+                      ? ` (${data.monthly_forecast.month})`
+                      : ''
+                  }`,
+                  value:
+                    data.monthly_forecast.predicted_count != null
+                      ? data.monthly_forecast.predicted_count.toLocaleString()
+                      : '—',
                   note: data.monthly_forecast.note,
                 },
                 {
                   label: 'Flagged complaints',
-                  value: (data.moderation_summary.profane_count + data.moderation_summary.spam_count + data.moderation_summary.repeated_count).toLocaleString(),
-                  note: 'Profanity, spam, or repeated submissions — see Dashboard filters',
+                  value: (
+                    data.moderation_summary.profane_count +
+                    data.moderation_summary.spam_count +
+                    data.moderation_summary.repeated_count
+                  ).toLocaleString(),
+                  note:
+                    'Profanity, spam, or repeated submissions — see Dashboard filters',
                 },
               ]}
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-              <ChartCard index={4} title="Sentiment trends" subtitle="Last 12 months">
+            <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <ChartCard
+                index={4}
+                title="Sentiment trends"
+                subtitle="Last 12 months"
+              >
                 <SentimentTrendChart
-                  data={data.sentiment_trends.map((r) => ({ ...r, month: r.month }))}
+                  data={data.sentiment_trends.map((r) => ({
+                    ...r,
+                    month: r.month,
+                  }))}
                 />
               </ChartCard>
 
-              <ChartCard index={5} title="Department workload" subtitle="Pending + in-progress complaints">
-                <SingleSeriesBarChart data={data.department_workload} dataKey="pending_total" nameKey="department" height={220} />
-              </ChartCard>
-
-              <ChartCard index={6} title="Common complaint keywords" subtitle="Most frequent words across recent complaints">
-                <SingleSeriesBarChart data={data.common_keywords} dataKey="count" nameKey="word" height={280} />
-              </ChartCard>
-
-              <ChartCard index={7} title="Classification confidence by category">
+              <ChartCard
+                index={5}
+                title="Department workload"
+                subtitle="Pending + in-progress complaints"
+              >
                 <SingleSeriesBarChart
-                  data={data.classification_confidence.by_category.map((c) => ({ ...c, confidence_pct: Math.round(c.avg_confidence * 100) }))}
+                  data={data.department_workload}
+                  dataKey="pending_total"
+                  nameKey="department"
+                  height={220}
+                />
+              </ChartCard>
+
+              <ChartCard
+                index={6}
+                title="Common complaint keywords"
+                subtitle="Most frequent words across recent complaints"
+              >
+                <SingleSeriesBarChart
+                  data={data.common_keywords}
+                  dataKey="count"
+                  nameKey="word"
+                  height={280}
+                />
+              </ChartCard>
+
+              <ChartCard
+                index={7}
+                title="Classification confidence by category"
+              >
+                <SingleSeriesBarChart
+                  data={data.classification_confidence.by_category.map(
+                    (c) => ({
+                      ...c,
+                      confidence_pct: Math.round(
+                        c.avg_confidence * 100
+                      ),
+                    })
+                  )}
                   dataKey="confidence_pct"
                   nameKey="category"
                   height={220}
@@ -87,24 +161,38 @@ export default function AdminInsights() {
               </ChartCard>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <NoticeCard className="animate-fade-in-up" style={{ animationDelay: '480ms' }}>
-                <h2 className="text-sm font-medium text-ink dark:text-paper mb-2">Recommendations</h2>
-                <ul className="text-sm text-ink-soft space-y-2 list-disc pl-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <NoticeCard
+                className="animate-fade-in-up"
+                style={{ animationDelay: '480ms' }}
+              >
+                <h2 className="mb-2 text-sm font-medium text-ink dark:text-paper">
+                  Recommendations
+                </h2>
+
+                <ul className="list-disc space-y-2 pl-4 text-sm text-ink-soft">
                   {data.recommendations.map((rec, i) => (
                     <li key={i}>{rec}</li>
                   ))}
                 </ul>
               </NoticeCard>
 
-              <NoticeCard className="animate-fade-in-up" style={{ animationDelay: '540ms' }}>
-                <h2 className="text-sm font-medium text-ink dark:text-paper mb-2">Geographic heatmap</h2>
-                <p className="text-sm text-ink-soft mb-3">
-                  Complaint density and hotspot clusters are visualized on an interactive map.
+              <NoticeCard
+                className="animate-fade-in-up"
+                style={{ animationDelay: '540ms' }}
+              >
+                <h2 className="mb-2 text-sm font-medium text-ink dark:text-paper">
+                  Geographic heatmap
+                </h2>
+
+                <p className="mb-3 text-sm text-ink-soft">
+                  Complaint density and hotspot clusters are visualized on
+                  an interactive map.
                 </p>
+
                 <Link
                   to="/admin/hotspots"
-                  className="inline-block px-3 py-1.5 text-sm bg-ink text-paper hover:bg-ink/90 transition-colors"
+                  className="inline-block bg-ink px-3 py-1.5 text-sm text-paper transition-colors hover:bg-ink/90"
                 >
                   View Hotspot Heatmap →
                 </Link>
@@ -113,6 +201,7 @@ export default function AdminInsights() {
           </>
         )}
       </PageTransition>
-    </div>
+    </AdminShell>
   );
 }
+

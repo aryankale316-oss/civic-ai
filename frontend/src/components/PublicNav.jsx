@@ -11,10 +11,10 @@ export default function PublicNav() {
   const location = useLocation();
 
   return (
-    <nav className="sticky top-0 z-40 bg-paper dark:bg-board border-b border-paper-line dark:border-board-line">
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3 max-w-6xl mx-auto">
+    <nav className="sticky top-0 z-40 border-b border-paper-line bg-white/95 backdrop-blur dark:border-board-line dark:bg-board/95">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-6">
-          <Link to="/" className="font-display font-bold text-xl uppercase tracking-wide text-ink dark:text-paper">
+          <Link to="/" className="text-xl font-bold tracking-tight text-civic dark:text-seal-green">
             Civic AI
           </Link>
           <div className="hidden sm:flex items-center gap-1">
@@ -24,9 +24,9 @@ export default function PublicNav() {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`px-3 py-1.5 text-sm border-b-2 transition-colors ${
+                  className={`border-b-2 px-3 py-5 text-sm font-medium transition-colors ${
                     active
-                      ? 'border-brass text-ink dark:text-paper font-medium'
+                      ? 'border-civic text-civic dark:border-seal-green dark:text-seal-green'
                       : 'border-transparent text-ink-soft hover:text-ink dark:hover:text-paper'
                   }`}
                 >
@@ -41,19 +41,19 @@ export default function PublicNav() {
           <button
             onClick={toggleTheme}
             aria-label="Toggle dark mode"
-            className="w-8 h-8 flex items-center justify-center text-ink-soft hover:bg-paper-warm dark:hover:bg-board-line transition-colors"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-paper-warm dark:hover:bg-board-line"
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            {theme === 'dark' ? 'Light' : 'Dark'}
           </button>
           <Link
             to="/login"
-            className="px-3 py-1.5 text-sm text-ink-soft hover:text-ink dark:hover:text-paper transition-colors"
+            className="px-3 py-2 text-sm font-medium text-ink-soft transition-colors hover:text-civic"
           >
             Log in
           </Link>
           <Link
             to="/register"
-            className="px-3 py-1.5 text-sm bg-ink text-paper hover:bg-ink/90 transition-colors"
+            className="rounded-md bg-civic px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-civic-bright"
           >
             Register
           </Link>
