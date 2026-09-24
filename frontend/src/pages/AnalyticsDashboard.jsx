@@ -116,6 +116,23 @@ export default function AnalyticsDashboard() {
                   <p className="text-sm text-ink-soft py-8 text-center">{data.department_rating.note}</p>
                 )}
               </ChartCard>
+
+              <ChartCard index={13} title="Department performance outlook" subtitle="Operational signals only — not a validated forecast">
+                <div className="space-y-3">
+                  {data.department_performance.data.map((department) => (
+                    <div key={department.id} className="border-b border-paper-line dark:border-board-line pb-3 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium text-ink dark:text-paper">{department.department}</span>
+                        <span className={`font-mono text-sm ${department.available ? (department.score >= 75 ? 'text-seal-green' : department.score >= 50 ? 'text-brass' : 'text-stamp-red') : 'text-ink-soft'}`}>
+                          {department.available ? `${department.score}% · ${department.outlook}` : department.outlook}
+                        </span>
+                      </div>
+                      <p className="text-xs text-ink-soft mt-1">{department.note}</p>
+                      {department.available && <p className="text-xs text-ink-soft mt-1">{department.pending_complaints} pending · {department.active_officers} active officer{department.active_officers === 1 ? '' : 's'} · {Math.round(department.assignment_coverage * 100)}% assigned</p>}
+                    </div>
+                  ))}
+                </div>
+              </ChartCard>
             </div>
           </>
         )}

@@ -56,6 +56,52 @@ router.post('/login', async (req, res) => {
     });
 });
 
+// A user may only view and update their own account.  Keeping this separate
+// from the admin user-management endpoints prevents citizens from changing
+// roles or department scopes through a profile form.
+router.get('/me', requireAuth, async (req, res) => {
+    const result = await pool.query(
+        'SELECT id, name, email, role, department_id FROM users WHERE id = $1',
+        [req.user.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    res.json(result.rows[0]);
+});
+
+router.patch('/me', requireAuth, async (req, res) => {
+    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    if (!name || !email) return res.status(400).json({ error: 'Name and email are required' });
+    if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address' });
+
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1 AND id <> $2', [email, req.user.id]);
+    if (existing.rows.length > 0) return res.status(409).json({ error: 'Email already registered' });
+
+    const result = await pool.query(
+        'UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING id, name, email, role, department_id',
+        [name, email, req.user.id]
+    );
+    res.json(result.rows[0]);
+});
+
+router.patch('/me/password', requireAuth, async (req, res) => {
+    const { current_password: currentPassword, new_password: newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+    if (newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters' });
+
+    const result = await pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    if (!(await bcrypt.compare(currentPassword, result.rows[0].password_hash))) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, req.user.id]);
+    res.status(204).end();
+});
+
 // Platform-admin-only: create a department-admin account. Departments don't
 // self-register (mirrors how officers.js works — staff accounts are
 // provisioned by the platform admin, not signed up).

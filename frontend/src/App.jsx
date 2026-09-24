@@ -14,6 +14,8 @@ import CitizenDashboard from './pages/CitizenDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminOfficers from './pages/AdminOfficers';
 import AdminReports from './pages/AdminReports';
+import AdminDepartments from './pages/AdminDepartments';
+import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 
 // Lazy-loaded: these pull in Leaflet, Recharts, or react-markdown, and
@@ -72,6 +74,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/complaints/new"
                   element={
                     <ProtectedRoute role="citizen">
@@ -126,6 +136,10 @@ export default function App() {
                       <AdminOfficers />
                     </ProtectedRoute>
                   }
+                />
+                <Route
+                  path="/admin/departments"
+                  element={<ProtectedRoute role="admin"><AdminDepartments /></ProtectedRoute>}
                 />
                 <Route
                   path="/admin/reports"

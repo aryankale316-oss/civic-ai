@@ -12,6 +12,7 @@ const ADMIN_LINKS = [
   { to: '/admin/analytics', label: 'Analytics' },
   { to: '/admin/hotspots', label: 'Hotspots' },
   { to: '/admin/officers', label: 'Officers' },
+  { to: '/admin/departments', label: 'Departments' },
   { to: '/admin/reports', label: 'Reports' },
   { to: '/admin/insights', label: 'Insights' },
 ];
@@ -74,6 +75,13 @@ function UserMenu({ user, onLogout }) {
               <p className="text-sm font-medium text-ink dark:text-paper truncate">{user.name}</p>
               <p className="text-xs text-ink-soft uppercase tracking-wide font-mono">{user.role}</p>
             </div>
+            <Link
+              to="/profile"
+              onClick={() => setOpen(false)}
+              className="block px-4 py-2.5 text-sm text-ink dark:text-paper hover:bg-paper-warm dark:hover:bg-board-line"
+            >
+              Profile & settings
+            </Link>
             <button
               onClick={onLogout}
               className="w-full text-left px-4 py-2.5 text-sm text-stamp-red hover:bg-paper-warm dark:hover:bg-board-line"
