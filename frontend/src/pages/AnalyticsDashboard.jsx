@@ -34,9 +34,9 @@ export default function AnalyticsDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-board">
+    <div className="min-h-screen bg-[#0b1424] text-[#f7fafc]">
       <Navbar />
-      <PageTransition className="max-w-6xl mx-auto px-6 py-8">
+      <PageTransition className="max-w-6xl mx-auto px-6 py-8 [&_h1]:text-[#f7fafc] [&_h2]:text-[#f7fafc] [&_.bg-white]:bg-[#142238] [&_.text-ink]:text-[#f7fafc] [&_.text-ink-soft]:text-[#a6b6c8] [&_.border-paper-line]:border-[#263750]">
         <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">Board summary</p>
         <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-6">Analytics</h1>
 

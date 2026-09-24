@@ -1,206 +1,39 @@
 import { useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import apiClient from '../api/client';
 import Navbar from '../components/Navbar';
 import ImageDropzone from '../components/ImageDropzone';
 import VoiceInputButton from '../components/VoiceInputButton';
 import LocationPicker from '../components/LocationPicker';
 import { useToast } from '../context/ToastContext';
-import PageTransition from '../components/ui/PageTransition';
 
-const INPUT_CLASS =
-  'w-full px-3 py-2 border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper focus:outline-none focus:ring-2 focus:ring-brass placeholder:text-ink-soft';
+const STEPS = ['Describe', 'Location', 'Photos', 'AI review', 'Submit'];
+const CATEGORIES = ['Roads', 'Water Supply', 'Electricity', 'Garbage', 'Drainage', 'Health', 'Transport', 'Public Safety'];
+const input = 'w-full rounded-xl border border-paper-line bg-white px-4 py-3 text-ink outline-none focus:border-seal-green focus:ring-4 focus:ring-seal-green/10';
 
 export default function NewComplaint() {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [locationText, setLocationText] = useState('');
-  const [latitude, setLatitude] = useState(null);
-  const [longitude, setLongitude] = useState(null);
-  const [images, setImages] = useState([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
-  const [duplicates, setDuplicates] = useState([]);
   const navigate = useNavigate();
   const toast = useToast();
-  const descriptionBaseRef = useRef('');
-  const duplicatesConfirmedRef = useRef(false);
+  const [step, setStep] = useState(1);
+  const [title, setTitle] = useState(''); const [description, setDescription] = useState('');
+  const [category, setCategory] = useState(''); const [locationText, setLocationText] = useState('');
+  const [latitude, setLatitude] = useState(null); const [longitude, setLongitude] = useState(null);
+  const [images, setImages] = useState([]); const [duplicates, setDuplicates] = useState([]);
+  const [checking, setChecking] = useState(false); const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(''); const [successId, setSuccessId] = useState(null);
+  const descriptionBase = useRef('');
 
-  async function submitComplaint() {
-    setError('');
-    setLoading(true);
-    try {
-      const { data } = await apiClient.post('/complaints', {
-        title,
-        description,
-        location_text: locationText,
-        latitude,
-        longitude,
-      });
-
-      if (images.length > 0) {
-        const formData = new FormData();
-        images.forEach((file) => formData.append('images', file));
-        try {
-          await apiClient.post(`/complaints/${data.id}/images`, formData);
-        } catch (uploadErr) {
-          console.error('Image upload failed:', uploadErr);
-        }
-      }
-
-      toast.success('Complaint submitted');
-      navigate(`/complaints/${data.id}`);
-    } catch (err) {
-      const message = err.response?.data?.error || 'Failed to submit complaint';
-      setError(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
-
-    if (!duplicatesConfirmedRef.current) {
-      setCheckingDuplicates(true);
-      try {
-        const { data } = await apiClient.post('/complaints/check-duplicates', { title, description });
-        if (data.possible_duplicates?.length > 0) {
-          setDuplicates(data.possible_duplicates);
-          setCheckingDuplicates(false);
-          return;
-        }
-      } catch (err) {
-        console.error('Duplicate check failed:', err);
-      }
-      setCheckingDuplicates(false);
-    }
-
-    setDuplicates([]);
-    await submitComplaint();
-  }
-
-  function handleSubmitAnyway() {
-    duplicatesConfirmedRef.current = true;
-    setDuplicates([]);
-    submitComplaint();
-  }
-
-  return (
-    <div className="min-h-screen bg-paper dark:bg-board">
-      <Navbar />
-      <PageTransition className="max-w-2xl mx-auto px-6 py-8">
-        <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">Intake form</p>
-        <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-6">Submit a New Complaint</h1>
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white dark:bg-board border border-paper-line dark:border-board-line p-6"
-        >
-          {error && <p className="text-sm text-stamp-red mb-4">{error}</p>}
-
-          <label className="block text-sm text-ink-soft mb-1">Title</label>
-          <input
-            required
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Pothole on Main Street"
-            className={`${INPUT_CLASS} mb-4`}
-          />
-
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm text-ink-soft">Description</label>
-            <VoiceInputButton
-              disabled={loading}
-              onListeningChange={(listening) => {
-                if (listening) descriptionBaseRef.current = description;
-              }}
-              onTranscriptChange={(transcript) => {
-                const base = descriptionBaseRef.current;
-                setDescription(`${base}${base ? ' ' : ''}${transcript}`);
-              }}
-            />
-          </div>
-          <textarea
-            required
-            rows={5}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe the issue in detail, or use the mic to speak it..."
-            className={`${INPUT_CLASS} mb-4`}
-          />
-
-          <label className="block text-sm text-ink-soft mb-1">Location</label>
-          <input
-            value={locationText}
-            onChange={(e) => setLocationText(e.target.value)}
-            placeholder="e.g. Main Street, Ward 5"
-            className={`${INPUT_CLASS} mb-3`}
-          />
-          <div className="mb-6">
-            <LocationPicker
-              latitude={latitude}
-              longitude={longitude}
-              disabled={loading}
-              onLocationChange={(lat, lng) => {
-                setLatitude(lat);
-                setLongitude(lng);
-              }}
-              onAddressChange={setLocationText}
-            />
-          </div>
-
-          <label className="block text-sm text-ink-soft mb-1">Photos (optional)</label>
-          <div className="mb-6">
-            <ImageDropzone files={images} onChange={setImages} disabled={loading} />
-          </div>
-
-          {duplicates.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-3 border-l-4 border-flap-amber bg-paper-warm dark:bg-board-line"
-            >
-              <p className="text-sm font-medium text-ink dark:text-paper mb-2">
-                This complaint appears similar to {duplicates.length === 1 ? 'an existing complaint' : 'existing complaints'}:
-              </p>
-              <ul className="text-sm text-ink-soft space-y-1 mb-3">
-                {duplicates.map((d) => (
-                  <li key={d.id}>
-                    <Link to={`/complaints/${d.id}`} target="_blank" rel="noreferrer" className="underline text-ink dark:text-paper hover:text-brass">
-                      #{d.id} — {d.title}
-                    </Link>{' '}
-                    <span className="text-xs font-mono text-ink-soft">({Math.round(d.similarity * 100)}% similar · {d.status})</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={handleSubmitAnyway}
-                disabled={loading}
-                className="px-3 py-1.5 text-sm border border-ink dark:border-paper-line text-ink dark:text-paper hover:bg-paper dark:hover:bg-board disabled:opacity-50"
-              >
-                Submit anyway
-              </button>
-            </motion.div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || checkingDuplicates}
-            className="w-full py-2 bg-ink text-paper hover:bg-ink/90 transition-colors disabled:opacity-50"
-          >
-            {checkingDuplicates
-              ? 'Checking for similar complaints...'
-              : loading
-              ? 'Submitting & classifying...'
-              : 'Submit Complaint'}
-          </button>
-        </form>
-      </PageTransition>
-    </div>
-  );
+  const validStep = () => (step !== 1 || (title.trim() && description.trim())) && (step !== 2 || locationText.trim());
+  function next() { if (!validStep()) { setError(step === 1 ? 'Add a title and description to continue.' : 'Choose or enter a location to continue.'); return; } setError(''); setStep((s) => s + 1); }
+  async function runReview() { setChecking(true); setError(''); try { const { data } = await apiClient.post('/complaints/check-duplicates', { title, description }); setDuplicates(data.possible_duplicates || []); } catch { setError('Duplicate check could not run. You can still submit your report.'); } finally { setChecking(false); } }
+  async function submit() { setSubmitting(true); setError(''); try { const { data } = await apiClient.post('/complaints', { title, description, location_text: locationText, latitude, longitude }); if (images.length) { const form = new FormData(); images.forEach((file) => form.append('images', file)); await apiClient.post(`/complaints/${data.id}/images`, form); } setSuccessId(data.id); toast.success('Report submitted successfully'); } catch (err) { setError(err.response?.data?.error || 'Failed to submit report'); } finally { setSubmitting(false); } }
+  if (successId) return <div className="min-h-screen bg-paper"><Navbar /><main className="max-w-xl mx-auto px-6 py-24 text-center"><motion.div initial={{ scale: .8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#55e0ce] text-4xl text-[#0b1424]">✓</motion.div><p className="mt-8 text-sm font-semibold uppercase tracking-[.2em] text-seal-green">Report received</p><h1 className="mt-3 text-4xl font-bold text-ink">Thank you for speaking up.</h1><p className="mt-4 text-ink-soft">Your complaint ID is <b>#{successId}</b>. We will notify you as it moves through review and resolution.</p><div className="mt-9 flex justify-center gap-3"><Link to={`/complaints/${successId}`} className="rounded-xl bg-[#087f73] px-5 py-3 font-semibold text-white">Track complaint</Link><Link to="/dashboard" className="rounded-xl border border-paper-line px-5 py-3 font-semibold text-ink">Dashboard</Link></div></main></div>;
+  return <div className="min-h-screen bg-paper"><Navbar /><main className="max-w-4xl mx-auto px-5 py-8"><p className="text-sm font-semibold text-seal-green">REPORT AN ISSUE</p><h1 className="mt-2 text-3xl font-bold text-ink">Help make your city better.</h1><div className="mt-8 grid grid-cols-5 gap-2">{STEPS.map((label, i) => <button type="button" key={label} onClick={() => i + 1 < step && setStep(i + 1)} className="text-left"><span className={`grid h-8 w-8 place-items-center rounded-full text-xs font-bold ${i + 1 <= step ? 'bg-[#087f73] text-white' : 'bg-paper-line text-ink-soft'}`}>{i + 1}</span><span className={`mt-2 hidden text-xs sm:block ${i + 1 === step ? 'font-bold text-ink' : 'text-ink-soft'}`}>{label}</span></button>)}</div><div className="mt-8 rounded-2xl border border-paper-line bg-white p-5 sm:p-8 shadow-sm">{error && <p className="mb-5 rounded-lg bg-red-50 p-3 text-sm text-stamp-red">{error}</p>}<AnimatePresence mode="wait"><motion.div key={step} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}>
+    {step === 1 && <section><h2 className="text-2xl font-bold text-ink">Describe the issue</h2><p className="mt-1 text-ink-soft">Choose a category to guide your report. AI will make the final routing suggestion.</p><div className="mt-5 flex flex-wrap gap-2">{CATEGORIES.map((item) => <button type="button" onClick={() => setCategory(item)} key={item} className={`rounded-full px-3 py-2 text-sm ${category === item ? 'bg-[#0b1424] text-[#55e0ce]' : 'bg-paper-warm text-ink'}`}>{item}</button>)}</div><label className="mt-6 block text-sm font-medium text-ink">Short title<input value={title} onChange={(e) => setTitle(e.target.value)} className={`${input} mt-2`} placeholder="Example: Large pothole near the bus stop" /></label><div className="mt-5 flex items-center justify-between"><label className="text-sm font-medium text-ink">What happened?</label><VoiceInputButton onListeningChange={(listening) => { if (listening) descriptionBase.current = description; }} onTranscriptChange={(text) => setDescription(`${descriptionBase.current}${descriptionBase.current ? ' ' : ''}${text}`)} /></div><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} className={`${input} mt-2`} placeholder="Include useful details, such as severity and landmarks." /></section>}
+    {step === 2 && <section><h2 className="text-2xl font-bold text-ink">Add the location</h2><p className="mt-1 text-ink-soft">Search or place a pin so the right team can find the issue.</p><input value={locationText} onChange={(e) => setLocationText(e.target.value)} className={`${input} mt-5`} placeholder="Street, landmark, or ward" /><div className="mt-4 overflow-hidden rounded-xl border border-paper-line"><LocationPicker latitude={latitude} longitude={longitude} onLocationChange={(lat, lng) => { setLatitude(lat); setLongitude(lng); }} onAddressChange={setLocationText} /></div></section>}
+    {step === 3 && <section><h2 className="text-2xl font-bold text-ink">Add photos</h2><p className="mt-1 text-ink-soft">Photos help staff understand the issue. They are optional.</p><div className="mt-5"><ImageDropzone files={images} onChange={setImages} /></div></section>}
+    {step === 4 && <section><h2 className="text-2xl font-bold text-ink">AI review</h2><p className="mt-1 text-ink-soft">We check for similar reports before you submit. Category and priority are calculated after the report is received.</p><button type="button" onClick={runReview} disabled={checking} className="mt-6 rounded-xl bg-[#0b1424] px-5 py-3 font-semibold text-[#55e0ce]">{checking ? 'Checking reports…' : 'Check similar reports'}</button>{duplicates.length > 0 && <div className="mt-5 rounded-xl bg-amber-50 p-4"><b className="text-amber-900">Possible similar reports</b>{duplicates.map((d) => <Link key={d.id} to={`/complaints/${d.id}`} className="mt-2 block text-sm text-amber-800 underline">#{d.id} — {d.title}</Link>)}</div>}</section>}
+    {step === 5 && <section><h2 className="text-2xl font-bold text-ink">Review and submit</h2><div className="mt-5 space-y-3 rounded-xl bg-paper-warm p-5 text-sm"><p><b>Title:</b> {title}</p><p><b>Category:</b> {category || 'Not selected'}</p><p><b>Location:</b> {locationText}</p><p><b>Description:</b> {description}</p><p><b>Photos:</b> {images.length}</p></div><p className="mt-5 text-xs text-ink-soft">AI classification, priority, and any image analysis are suggestions for staff review, not confirmed facts.</p></section>}
+  </motion.div></AnimatePresence><div className="mt-8 flex justify-between gap-3 border-t border-paper-line pt-5">{step > 1 ? <button type="button" onClick={() => setStep((s) => s - 1)} className="rounded-xl px-4 py-3 font-semibold text-ink">Back</button> : <Link to="/dashboard" className="rounded-xl px-4 py-3 font-semibold text-ink">Cancel</Link>}{step < 5 ? <button type="button" onClick={next} className="rounded-xl bg-[#087f73] px-5 py-3 font-semibold text-white">Continue</button> : <button type="button" disabled={submitting} onClick={submit} className="rounded-xl bg-[#087f73] px-5 py-3 font-semibold text-white">{submitting ? 'Submitting…' : 'Submit report'}</button>}</div></div></main></div>;
 }

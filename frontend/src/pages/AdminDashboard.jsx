@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 import Navbar from '../components/Navbar';
 import { PriorityBadge, StatusBadge, SentimentBadge } from '../components/Badges';
@@ -54,6 +55,11 @@ const COLUMNS = [
   { key: 'submitted', label: 'Submitted' },
 ];
 
+function OperationsSidebar() {
+  const links = [['/admin/dashboard', 'Overview'], ['/admin/hotspots', 'City map'], ['/admin/analytics', 'Analytics'], ['/admin/departments', 'Departments'], ['/admin/officers', 'Officers'], ['/admin/insights', 'Insights'], ['/admin/reports', 'Reports']];
+  return <aside className="hidden xl:flex fixed inset-y-0 left-0 z-30 w-60 flex-col border-r border-[#263750] bg-[#0b1424] p-6 text-[#a6b6c8]"><Link to="/admin/dashboard" className="text-xl font-bold tracking-tight text-white">CIVIC <span className="text-[#55e0ce]">AI</span></Link><p className="mt-1 text-xs uppercase tracking-[.18em]">City operations</p><nav className="mt-10 space-y-1">{links.map(([to, label]) => <Link key={to} to={to} className={`block rounded-xl px-3 py-2.5 text-sm hover:bg-[#142238] hover:text-white ${to === '/admin/dashboard' ? 'bg-[#142238] text-[#55e0ce]' : ''}`}>{label}</Link>)}</nav><p className="mt-auto text-xs leading-5">Live civic intelligence<br />for better city care.</p></aside>;
+}
+
 export default function AdminDashboard() {
   const [complaints, setComplaints] = useState([]);
   const [officers, setOfficers] = useState([]);
@@ -63,6 +69,7 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [flaggedOnly, setFlaggedOnly] = useState(false);
+  const [selected, setSelected] = useState(null);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -135,9 +142,10 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-board">
+    <div className="min-h-screen bg-[#0b1424] text-[#f7fafc]">
+      <OperationsSidebar />
       <Navbar />
-      <PageTransition className="max-w-6xl mx-auto px-6 py-8">
+      <PageTransition className="max-w-6xl mx-auto px-6 py-8 xl:ml-60 [&_h1]:text-[#f7fafc] [&_h2]:text-[#f7fafc] [&_.bg-white]:bg-[#142238] [&_.text-ink]:text-[#f7fafc] [&_.text-ink-soft]:text-[#a6b6c8] [&_.border-paper-line]:border-[#263750]">
         <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">Ledger</p>
         <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-6">All Complaints</h1>
 
@@ -181,7 +189,7 @@ export default function AdminDashboard() {
             renderRow={(c) => (
               <tr
                 key={c.id}
-                onClick={() => navigate(`/complaints/${c.id}`)}
+                onClick={() => setSelected(c)}
                 className="border-t border-paper-line dark:border-board-line hover:bg-paper-warm dark:hover:bg-board-line/40 transition-colors cursor-pointer"
               >
                 <td className="px-4 py-3 font-medium text-ink dark:text-paper">{c.title}</td>
@@ -236,6 +244,7 @@ export default function AdminDashboard() {
           />
         )}
       </PageTransition>
+      {selected && <div className="fixed inset-0 z-60 flex justify-end bg-black/50" onClick={() => setSelected(null)}><motion.aside initial={{ x: 480 }} animate={{ x: 0 }} exit={{ x: 480 }} onClick={(e) => e.stopPropagation()} className="h-full w-full max-w-lg overflow-y-auto border-l border-[#263750] bg-[#142238] p-6 text-[#f7fafc] shadow-2xl"><div className="flex items-start justify-between"><div><p className="text-xs font-semibold tracking-[.18em] text-[#55e0ce]">COMPLAINT #{selected.id}</p><h2 className="mt-2 text-2xl font-bold">{selected.title}</h2><p className="mt-2 text-sm text-[#a6b6c8]">{selected.location_text || 'Location not provided'} · {new Date(selected.created_at).toLocaleDateString()}</p></div><button onClick={() => setSelected(null)} className="rounded-lg p-2 text-[#a6b6c8] hover:bg-white/10">✕</button></div><div className="mt-7 space-y-5"><section className="rounded-xl bg-[#0b1424] p-4"><p className="text-xs font-semibold uppercase tracking-wide text-[#a6b6c8]">Description</p><p className="mt-2 text-sm leading-6">{selected.description}</p></section><div className="grid grid-cols-2 gap-3"><section className="rounded-xl border border-[#263750] p-4"><p className="text-xs text-[#a6b6c8]">Priority</p><div className="mt-2"><PriorityBadge priority={selected.ai_priority} /></div></section><section className="rounded-xl border border-[#263750] p-4"><p className="text-xs text-[#a6b6c8]">Status</p><div className="mt-2"><StatusBadge status={selected.status} /></div></section></div><section><label className="text-sm font-medium">Update status</label><select value={selected.status} onChange={(e) => { handleStatusChange(selected.id, e.target.value); setSelected({ ...selected, status: e.target.value }); }} className="mt-2 w-full rounded-lg border border-[#263750] bg-[#0b1424] p-3 text-sm">{STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}</select></section><section><label className="text-sm font-medium">Assign officer</label><select value={selected.assigned_officer_id || ''} onChange={(e) => { handleAssign(selected.id, e.target.value); const officer = officers.find((o) => o.id === Number(e.target.value)); setSelected({ ...selected, assigned_officer_id: officer?.id, assigned_officer_name: officer?.name }); }} className="mt-2 w-full rounded-lg border border-[#263750] bg-[#0b1424] p-3 text-sm"><option value="">Unassigned</option>{officers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></section><section className="rounded-xl border border-[#263750] p-4"><p className="text-xs text-[#a6b6c8]">AI insights</p><p className="mt-2 text-sm">Category: {selected.ai_category || 'Unclassified'} · Sentiment: {selected.sentiment || 'Unavailable'}</p><p className="mt-1 text-xs text-[#a6b6c8]">AI suggestions support staff review and are not verified facts.</p></section></div></motion.aside></div>}
     </div>
   );
 }

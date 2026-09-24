@@ -28,10 +28,10 @@ export default function Landing() {
       <PublicNav />
 
       <PageTransition>
-        <section className="max-w-4xl mx-auto px-6 pt-16 pb-12 text-center">
+        <section className="city-hero min-h-[650px] mx-auto px-6 pt-28 pb-32 text-left">
           <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-3">Civic Grievance Platform</p>
-          <h1 className="text-4xl sm:text-5xl font-display font-semibold text-ink dark:text-paper mb-4">
-            Report an issue. Let AI route it. Watch it get fixed.
+          <h1 className="max-w-xl text-5xl sm:text-7xl font-display font-bold tracking-tight text-[#f7fafc] mb-4">
+            See a problem. Start a change.
           </h1>
           <p className="text-ink-soft max-w-2xl mx-auto mb-8">
             Civic AI takes a citizen complaint about roads, water, electricity, garbage, or safety and uses machine

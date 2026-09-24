@@ -4,8 +4,7 @@ const ThemeContext = createContext(null);
 
 function getInitialTheme() {
   const stored = localStorage.getItem('theme');
-  if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return stored === 'light' || stored === 'dark' ? stored : 'dark';
 }
 
 export function ThemeProvider({ children }) {
@@ -17,7 +16,7 @@ export function ThemeProvider({ children }) {
   }, [theme]);
 
   function toggleTheme() {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
   }
 
   return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;

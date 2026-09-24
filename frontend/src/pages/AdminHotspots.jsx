@@ -36,7 +36,7 @@ export default function AdminHotspots() {
   const mapCenter = allPoints.length > 0 ? [allPoints[0].lat, allPoints[0].lng] : DEFAULT_CENTER;
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-board">
+    <div className="admin-page min-h-screen">
       <Navbar />
       <PageTransition className="max-w-6xl mx-auto px-6 py-8">
         <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">Field map</p>

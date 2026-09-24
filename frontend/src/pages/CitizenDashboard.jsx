@@ -40,6 +40,13 @@ export default function CitizenDashboard() {
           </Link>
         </div>
 
+        {!loading && !error && (() => {
+          const count = (status) => complaints.filter((c) => c.status === status).length;
+          return <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[['Total reports', complaints.length, 'bg-[#0b1424] text-white'], ['Pending', count('submitted'), 'bg-amber-50 text-amber-800'], ['In progress', count('in_progress'), 'bg-blue-50 text-blue-800'], ['Resolved', count('resolved'), 'bg-emerald-50 text-emerald-800']].map(([label, value, tone]) => <div key={label} className={`rounded-2xl p-5 border border-paper-line shadow-sm ${tone}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-70">{label}</p><p className="mt-2 text-3xl font-bold">{value}</p></div>)}
+          </div>;
+        })()}
+
         {loading && <SkeletonRows rows={4} />}
         {error && <p className="text-stamp-red">{error}</p>}
 

@@ -8,21 +8,21 @@
    the app reads as an official/paper material instead of a rounded
    consumer app, with no per-component edits required. */
 @theme {
-  --color-paper: #eef0ea;
-  --color-paper-warm: #e7dfc6;
-  --color-paper-line: #d9d7c9;
-  --color-ink: #1c2b45;
-  --color-ink-soft: #5b6472;
-  --color-board: #14171c;
-  --color-board-line: #262b33;
-  --color-stamp-red: #b23a2e;
-  --color-seal-green: #3c7a5a;
-  --color-brass: #b8893e;
+  --color-paper: #f6f9fc;
+  --color-paper-warm: #edf5f6;
+  --color-paper-line: #d8e3ea;
+  --color-ink: #0b1424;
+  --color-ink-soft: #62748a;
+  --color-board: #0b1424;
+  --color-board-line: #263750;
+  --color-stamp-red: #d85d65;
+  --color-seal-green: #087f73;
+  --color-brass: #55e0ce;
   /* Not in the base palette — StatusFlap needs a 4th "in progress" tone
      distinct from brass (received) and stamp-red (critical/rejected). */
   --color-flap-amber: #c68a2e;
 
-  --font-display: "Barlow Condensed", ui-sans-serif, sans-serif;
+  --font-display: "Inter", ui-sans-serif, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
   --font-sans: "IBM Plex Sans", ui-sans-serif, sans-serif;
 
@@ -40,6 +40,16 @@ body {
   font-family: var(--font-sans);
 }
 
+.city-hero { background: #0b1424 url('/images/civic-city-hero.png') right center / cover no-repeat; }
+@media (max-width: 768px) { .city-hero { background-position: 62% center; } }
+
+.admin-page { background: #0b1424; color: #f7fafc; }
+.admin-page .bg-white { background: #142238; }
+.admin-page .text-ink, .admin-page h1, .admin-page h2, .admin-page h3 { color: #f7fafc; }
+.admin-page .text-ink-soft { color: #a6b6c8; }
+.admin-page .border-paper-line { border-color: #263750; }
+.admin-page input, .admin-page select, .admin-page textarea { background: #0b1424; border-color: #263750; color: #f7fafc; }
+
 html.dark {
   color-scheme: dark;
   /* text-ink-soft/stamp-red/seal-green are used as body/status text
@@ -52,6 +62,19 @@ html.dark {
   --color-stamp-red: #e06b5e;
   --color-seal-green: #4f9c74;
 }
+
+/* One coherent dark application shell: public, citizen, and admin screens
+   all share the same midnight surfaces instead of inheriting mixed cards. */
+html.dark body { background: #0b1424; color: #f7fafc; }
+html.dark .bg-paper { background-color: #0b1424 !important; }
+html.dark .bg-paper-warm { background-color: #142238 !important; }
+html.dark .bg-white { background-color: #142238 !important; }
+html.dark .border-paper-line { border-color: #263750 !important; }
+html.dark .text-ink { color: #f7fafc !important; }
+html.dark .text-ink-soft { color: #a6b6c8 !important; }
+html.dark input, html.dark textarea, html.dark select { background-color: #0b1424 !important; border-color: #263750 !important; color: #f7fafc !important; }
+html.dark option { background: #142238; color: #f7fafc; }
+html.dark .ticket-stub { background: #142238; }
 
 @keyframes fade-in-up {
   from {
