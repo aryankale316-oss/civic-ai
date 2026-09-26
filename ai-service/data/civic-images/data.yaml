@@ -1,0 +1,10 @@
+# Standard YOLO dataset definition. Add labelled image files to the folders
+# described in README.md before training.
+path: .
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: pothole
+  1: garbage
+  2: waterlogging

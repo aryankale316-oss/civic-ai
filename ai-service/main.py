@@ -22,6 +22,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model.joblib")
 RESOLUTION_MODEL_PATH = os.path.join(BASE_DIR, "resolution_model.joblib")
 YOLO_MODEL_PATH = os.path.join(BASE_DIR, "yolov8n.pt")
+CUSTOM_CIVIC_MODEL_PATH = os.getenv(
+    "CIVIC_DETECTOR_MODEL_PATH",
+    os.path.join(BASE_DIR, "models", "civic_detector", "weights", "best.pt"),
+)
 
 app = FastAPI(title="Civic AI Classification Service")
 app.add_middleware(
@@ -46,6 +50,7 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 # "pothole" or "garbage pile"; those come from the OpenCV heuristics below.
 yolo_model = YOLO(YOLO_MODEL_PATH)
 YOLO_CONFIDENCE_THRESHOLD = 0.35
+custom_civic_model = YOLO(CUSTOM_CIVIC_MODEL_PATH) if os.path.exists(CUSTOM_CIVIC_MODEL_PATH) else None
 
 sentiment_analyzer = SentimentIntensityAnalyzer()
 # Standard VADER thresholds on the compound score.
@@ -181,11 +186,15 @@ def humanize_hours(hours: float) -> str:
 
 # civic-issue candidates from the OpenCV heuristics, plus the 80 general COCO
 # classes the YOLOv8n model can recognize (car, person, dog, etc.).
-SUPPORTED_ISSUE_LABELS = [
+HEURISTIC_ISSUE_LABELS = [
     "pothole_candidate",
     "garbage_candidate",
     "water_logging_candidate",
-] + list(yolo_model.names.values())
+]
+SUPPORTED_ISSUE_LABELS = (
+    list(custom_civic_model.names.values()) + list(yolo_model.names.values())
+    if custom_civic_model else HEURISTIC_ISSUE_LABELS + list(yolo_model.names.values())
+)
 
 
 @app.get("/health")
@@ -284,6 +293,17 @@ async def detect_issues(image: UploadFile = File(...)):
     h, w = img_bgr.shape[:2]
     detections = []
 
+    if custom_civic_model is not None:
+        custom_results = custom_civic_model.predict(img_bgr, verbose=False, conf=YOLO_CONFIDENCE_THRESHOLD)[0]
+        for box in custom_results.boxes:
+            x1, y1, x2, y2 = box.xyxy[0].tolist()
+            detections.append(Detection(
+                label=custom_civic_model.names[int(box.cls[0])],
+                confidence=round(float(box.conf[0]), 2),
+                bbox=[x1 / w, y1 / h, (x2 - x1) / w, (y2 - y1) / h],
+                source="civic-yolo-finetuned",
+            ))
+
     results = yolo_model.predict(img_bgr, verbose=False, conf=YOLO_CONFIDENCE_THRESHOLD)[0]
     for box in results.boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()
@@ -294,12 +314,22 @@ async def detect_issues(image: UploadFile = File(...)):
             source="yolov8n-coco",
         ))
 
-    detections.extend(Detection(**d) for d in detect_civic_issues(img_bgr))
+    if custom_civic_model is None:
+        detections.extend(Detection(**d) for d in detect_civic_issues(img_bgr))
+
+    if custom_civic_model is not None:
+        return DetectIssuesResponse(
+            detections=detections,
+            is_placeholder=False,
+            model_version="civic-yolo-finetuned",
+            supported_labels=SUPPORTED_ISSUE_LABELS,
+            note="Civic issue classes use the locally trained civic YOLO model. Review every detection before action; model output is not a verified finding.",
+        )
 
     return DetectIssuesResponse(
         detections=detections,
         is_placeholder=False,
-        model_version="yolov8n-coco + opencv-heuristics-v1",
+        model_version="civic-yolo-finetuned" if custom_civic_model else "yolov8n-coco + opencv-heuristics-v1",
         supported_labels=SUPPORTED_ISSUE_LABELS,
         note=(
             "General objects (person, car, etc.) are detected with a pretrained YOLOv8n "
