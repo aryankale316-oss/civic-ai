@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { sendEmail } = require('./email');
 
 let ioInstance = null;
 
@@ -14,6 +15,19 @@ async function createNotification({ userId, complaintId, type, title, message })
         [userId, complaintId || null, type, title, message]
     );
     const notification = rows[0];
+    const { rows: users } = await pool.query(
+    'SELECT email FROM users WHERE id = $1',
+    [userId]
+);
+
+if (users[0]?.email) {
+    await sendEmail({
+        to: users[0].email,
+        subject: title,
+        text: message,
+    });
+}
+
     ioInstance?.to(`user:${userId}`).emit('notification', notification);
     return notification;
 }
