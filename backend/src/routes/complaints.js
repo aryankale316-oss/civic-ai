@@ -280,6 +280,18 @@ router.post('/', requireAuth, async (req, res) => {
     const complaint = stripModerationFields(rows[0], req.user.role);
 
     try {
+        await createNotification({
+            userId: req.user.id,
+            complaintId,
+            type: 'complaint_submitted',
+            title: 'Complaint submitted',
+            message: `Your complaint "${title}" was submitted successfully. Reference: CIV-${String(complaintId).padStart(5, '0')}.`,
+        });
+    } catch (err) {
+        console.error('Citizen submission notification failed:', err.message);
+    }
+
+    try {
         await notifyDeptAdmins({
             departmentId,
             complaintId,

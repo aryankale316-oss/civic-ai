@@ -23,24 +23,89 @@ function extractCommonKeywords(texts, limit = 15) {
         .map(([word, count]) => ({ word, count }));
 }
 
-// Ordinary least squares on (index, count) pairs — a simple trend line, not
-// a validated time-series forecasting model. With only a handful of months
-// of data, anything more sophisticated (ARIMA, Prophet) would be spurious.
-function linearForecast(points) {
-    const n = points.length;
-    if (n < 2) return null;
+// Compare lightweight forecast methods with rolling one-month-ahead backtesting.
+// This keeps the method understandable and avoids a heavy forecasting dependency.
+function averageForecast(values) {
+    const recent = values.slice(-3);
+    return Math.round(recent.reduce((sum, value) => sum + value, 0) / recent.length);
+}
 
-    const sumX = points.reduce((s, p) => s + p.x, 0);
-    const sumY = points.reduce((s, p) => s + p.y, 0);
-    const sumXY = points.reduce((s, p) => s + p.x * p.y, 0);
-    const sumX2 = points.reduce((s, p) => s + p.x * p.x, 0);
-    const denom = n * sumX2 - sumX * sumX;
-    if (denom === 0) return null;
+// Fit a short trend to recent counts, then carry only half of its slope into
+// the next month so a brief spike does not extrapolate unchecked.
+function dampedTrendForecast(values) {
+    const recent = values.slice(-6);
+    const n = recent.length;
+    if (n < 2) return recent[n - 1] || 0;
 
-    const slope = (n * sumXY - sumX * sumY) / denom;
-    const intercept = (sumY - slope * sumX) / n;
-    const predicted = slope * n + intercept;
-    return Math.max(0, Math.round(predicted));
+    const meanY = recent.reduce((sum, value) => sum + value, 0) / n;
+    const meanX = (n - 1) / 2;
+    let numerator = 0;
+    let denominator = 0;
+    recent.forEach((value, index) => {
+        numerator += (index - meanX) * (value - meanY);
+        denominator += (index - meanX) ** 2;
+    });
+
+    const slope = denominator === 0 ? 0 : numerator / denominator;
+    return Math.max(0, Math.round(recent[n - 1] + slope * 0.5));
+}
+
+const FORECAST_MODELS = [
+    { key: 'three_month_average', label: '3-month average', predict: averageForecast },
+    { key: 'damped_trend', label: 'damped trend', predict: dampedTrendForecast },
+    { key: 'last_month', label: 'last-month baseline', predict: (values) => values[values.length - 1] },
+];
+
+// Rolling-origin one-month-ahead backtesting uses only earlier months for
+// each prediction. Select a model only after at least three scored forecasts.
+function forecastWithBacktest(values) {
+    if (values.length === 0 || values.every((value) => value === 0)) {
+        return {
+            predictedCount: null,
+            model: null,
+            backtest: { available: false, forecasts: 0, mae: null, baselineMae: null },
+            note: 'No complaint history is available for a forecast.',
+        };
+    }
+
+    const errors = Object.fromEntries(FORECAST_MODELS.map((model) => [model.key, []]));
+    for (let targetIndex = 4; targetIndex < values.length; targetIndex += 1) {
+        const history = values.slice(0, targetIndex);
+        const actual = values[targetIndex];
+        for (const model of FORECAST_MODELS) {
+            errors[model.key].push(Math.abs(model.predict(history) - actual));
+        }
+    }
+
+    const scoredForecasts = errors[FORECAST_MODELS[0].key].length;
+    const activeMonths = values.filter((value) => value > 0).length;
+    if (scoredForecasts < 3 || activeMonths < 4) {
+        return {
+            predictedCount: averageForecast(values),
+            model: 'three_month_average',
+            backtest: { available: false, forecasts: scoredForecasts, mae: null, baselineMae: null },
+            note: 'Showing a 3-month average. At least four months with complaints are needed for a useful backtest.',
+        };
+    }
+
+    const modelResults = FORECAST_MODELS.map((model) => ({
+        ...model,
+        mae: errors[model.key].reduce((sum, error) => sum + error, 0) / scoredForecasts,
+    })).sort((a, b) => a.mae - b.mae);
+    const selected = modelResults[0];
+    const baseline = modelResults.find((model) => model.key === 'last_month');
+
+    return {
+        predictedCount: Math.max(0, selected.predict(values)),
+        model: selected.key,
+        backtest: {
+            available: true,
+            forecasts: scoredForecasts,
+            mae: Math.round(selected.mae * 10) / 10,
+            baselineMae: Math.round(baseline.mae * 10) / 10,
+        },
+        note: `Selected ${selected.label} by rolling one-month-ahead backtesting (${scoredForecasts} forecasts; MAE ${Math.round(selected.mae * 10) / 10} vs last-month baseline ${Math.round(baseline.mae * 10) / 10} complaints). Based on up to 12 monthly observations; treat as a planning estimate.`,
+    };
 }
 
 function buildRecommendations({ growthPct, departmentWorkload, categoryConfidence, sentimentTrends, unassignedPendingCount }) {
@@ -109,10 +174,18 @@ async function getInsightsSummary() {
                 GROUP BY 1 ORDER BY 1
             `),
             pool.query(`
-                SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month, COUNT(*)::int AS count
-                FROM complaints
-                WHERE created_at >= now() - interval '12 months'
-                GROUP BY 1 ORDER BY 1
+                WITH months AS (
+                    SELECT generate_series(
+                        date_trunc('month', now()) - interval '11 months',
+                        date_trunc('month', now()),
+                        interval '1 month'
+                    ) AS month_start
+                )
+                SELECT to_char(m.month_start, 'YYYY-MM') AS month, COUNT(c.id)::int AS count
+                FROM months m
+                LEFT JOIN complaints c ON date_trunc('month', c.created_at) = m.month_start
+                GROUP BY m.month_start
+                ORDER BY m.month_start
             `),
             pool.query(`
                 SELECT COALESCE(d.name, 'Unassigned') AS department,
@@ -141,7 +214,7 @@ async function getInsightsSummary() {
         growthPct = previous > 0 ? ((current - previous) / previous) * 100 : null;
     }
 
-    const forecastCount = linearForecast(growthPoints.map((p, i) => ({ x: i, y: p.count })));
+    const forecast = forecastWithBacktest(growthPoints.map((point) => point.count));
     let forecastLabel = null;
     if (growthPoints.length > 0) {
         const [year, month] = growthPoints[growthPoints.length - 1].month.split('-').map(Number);
@@ -174,8 +247,10 @@ async function getInsightsSummary() {
         },
         monthly_forecast: {
             month: forecastLabel,
-            predicted_count: forecastCount,
-            note: 'Simple linear trend over recent months, not a validated forecasting model — accuracy improves with more historical data.',
+            predicted_count: forecast.predictedCount,
+            model: forecast.model,
+            backtest: forecast.backtest,
+            note: forecast.note,
         },
         moderation_summary: moderationFlags.rows[0],
         recommendations,
