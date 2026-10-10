@@ -1,5 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageSelect from './LanguageSelect';
 
 const LINKS = [
   { to: '/', label: 'Home' },
@@ -9,6 +11,7 @@ const LINKS = [
 export default function PublicNav() {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const { t } = useLanguage();
 
   return (
     <nav className="sticky top-0 z-40 border-b border-paper-line bg-white/95 backdrop-blur dark:border-board-line dark:bg-board/95">
@@ -30,7 +33,7 @@ export default function PublicNav() {
                       : 'border-transparent text-ink-soft hover:text-ink dark:hover:text-paper'
                   }`}
                 >
-                  {link.label}
+                  {t(link.label)}
                 </Link>
               );
             })}
@@ -38,6 +41,7 @@ export default function PublicNav() {
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageSelect />
           <button
             onClick={toggleTheme}
             aria-label="Toggle dark mode"
@@ -49,13 +53,13 @@ export default function PublicNav() {
             to="/login"
             className="px-3 py-2 text-sm font-medium text-ink-soft transition-colors hover:text-civic"
           >
-            Log in
+            {t('Log in')}
           </Link>
           <Link
             to="/register"
             className="rounded-md bg-civic px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-civic-bright"
           >
-            Register
+            {t('Register')}
           </Link>
         </div>
       </div>

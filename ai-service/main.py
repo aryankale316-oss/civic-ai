@@ -5,7 +5,7 @@ import cv2
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
@@ -17,6 +17,7 @@ from priority import predict_priority
 from moderation import moderate_text
 from fake_detection import check_gibberish
 from image_detection import detect_civic_issues
+from translation import prepare_text, translate_text
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model.joblib")
@@ -171,6 +172,30 @@ class FakeCheckResponse(BaseModel):
     gibberish_signals: List[str]
 
 
+class PrepareTextRequest(BaseModel):
+    text: str
+
+
+class PrepareTextResponse(BaseModel):
+    source_language: str
+    analysis_text: str
+    translation_used: bool
+    translation_model: str | None
+    translation_note: str
+    translation_available: bool
+
+
+class TranslateTextRequest(BaseModel):
+    text: str
+    source_language: str
+    target_language: str
+
+
+class TranslateTextResponse(BaseModel):
+    translated_text: str
+    model: str
+
+
 def humanize_hours(hours: float) -> str:
     if hours < 1:
         return "less than an hour"
@@ -200,6 +225,23 @@ SUPPORTED_ISSUE_LABELS = (
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/prepare-text", response_model=PrepareTextResponse)
+def prepare_complaint_text(req: PrepareTextRequest):
+    return PrepareTextResponse(**prepare_text(req.text))
+
+
+@app.post("/translate-text", response_model=TranslateTextResponse)
+def translate_text_endpoint(req: TranslateTextRequest):
+    if req.source_language not in {"en", "hi"} or req.target_language not in {"en", "hi"}:
+        raise HTTPException(status_code=400, detail="Only English and Hindi translation is supported")
+    translated = translate_text(req.text, req.source_language, req.target_language)
+    model_name = (
+        "Helsinki-NLP/opus-mt-hi-en" if req.source_language == "hi"
+        else "Helsinki-NLP/opus-mt-en-hi"
+    )
+    return TranslateTextResponse(translated_text=translated, model=model_name)
 
 
 @app.post("/embed", response_model=EmbedResponse)

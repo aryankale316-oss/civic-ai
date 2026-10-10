@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useLanguage } from './LanguageContext';
 
 const ToastContext = createContext(null);
 
@@ -12,6 +13,7 @@ const VARIANT_STYLES = {
 const VARIANT_ICONS = { success: '✅', error: '⚠️', info: 'ℹ️' };
 
 export function ToastProvider({ children }) {
+  const { t: translate } = useLanguage();
   const [toasts, setToasts] = useState([]);
   const idRef = useRef(0);
 
@@ -48,11 +50,11 @@ export function ToastProvider({ children }) {
               className={`flex items-center gap-2 px-4 py-2.5 border text-sm text-ink dark:text-paper ${VARIANT_STYLES[t.variant]}`}
             >
               <span>{VARIANT_ICONS[t.variant]}</span>
-              <span>{t.message}</span>
+              <span>{translate(t.message)}</span>
               <button
                 onClick={() => dismiss(t.id)}
                 className="ml-2 text-ink-soft hover:text-ink dark:hover:text-paper"
-                aria-label="Dismiss"
+                aria-label={translate('Dismiss')}
               >
                 ✕
               </button>

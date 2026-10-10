@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
+import { LanguageProvider } from './context/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Landing from './pages/Landing';
 import About from './pages/About';
@@ -54,10 +55,11 @@ function ChatWidgetGate() {
 export default function App() {
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <NotificationProvider>
-            <BrowserRouter>
+      <LanguageProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
@@ -162,10 +164,11 @@ export default function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <ChatWidgetGate />
-            </BrowserRouter>
-          </NotificationProvider>
-        </AuthProvider>
-      </ToastProvider>
+              </BrowserRouter>
+            </NotificationProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

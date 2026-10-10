@@ -1,11 +1,13 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useChartTheme, PRIORITY_COLORS, PRIORITY_ORDER } from './chartTheme';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function PriorityDistributionChart({ data, height = 200 }) {
   const { ink, tooltipStyle, cursorFill } = useChartTheme();
+  const { t } = useLanguage();
 
   if (!data || data.length === 0) {
-    return <p className="text-sm text-ink-soft py-8 text-center">No data yet.</p>;
+    return <p className="text-sm text-ink-soft py-8 text-center">{t('No data yet.')}</p>;
   }
 
   const sorted = [...data].sort(
@@ -25,6 +27,7 @@ export default function PriorityDistributionChart({ data, height = 200 }) {
         <YAxis
           type="category"
           dataKey="priority"
+          tickFormatter={t}
           width={90}
           tick={{ fill: ink.secondary, fontSize: 12 }}
           axisLine={{ stroke: ink.grid }}

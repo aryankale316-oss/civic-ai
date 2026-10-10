@@ -1,11 +1,13 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useChartTheme } from './chartTheme';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function MonthlyTrendChart({ data, height = 240 }) {
   const { ink, tooltipStyle, sequentialBlue, isDark } = useChartTheme();
+  const { t } = useLanguage();
 
   if (!data || data.length === 0) {
-    return <p className="text-sm text-ink-soft py-8 text-center">No data yet.</p>;
+    return <p className="text-sm text-ink-soft py-8 text-center">{t('No data yet.')}</p>;
   }
 
   return (

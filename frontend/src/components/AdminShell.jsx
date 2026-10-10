@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
+import LanguageSelect from './LanguageSelect';
+import { useLanguage } from '../context/LanguageContext';
 
 const ADMIN_LINKS = [
   { to: '/admin/dashboard', label: 'Ticket Queue', icon: 'queue' },
@@ -33,6 +35,7 @@ function Icon({ name, className = 'h-5 w-5' }) {
 }
 
 export default function AdminShell({ children, searchValue = '', onSearchChange, searchPlaceholder = 'Search grievances...' }) {
+  const { t } = useLanguage();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
@@ -49,8 +52,8 @@ export default function AdminShell({ children, searchValue = '', onSearchChange,
   const sidebar = (
     <div className="flex h-full flex-col">
       <div className="border-b border-paper-line px-6 py-6 dark:border-board-line">
-        <Link to="/admin/dashboard" className="text-2xl font-bold tracking-tight text-civic dark:text-seal-green">Admin Portal</Link>
-        <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-ink-soft">Civic Governance</p>
+        <Link to="/admin/dashboard" className="text-2xl font-bold tracking-tight text-civic dark:text-seal-green">{t('Admin Portal')}</Link>
+        <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-ink-soft">{t('Civic Governance')}</p>
       </div>
       <nav className="flex-1 space-y-1 px-4 py-6">
         {links.map((link) => {
@@ -58,7 +61,7 @@ export default function AdminShell({ children, searchValue = '', onSearchChange,
           return (
             <Link key={link.to} to={link.to} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-colors ${active ? 'bg-civic-soft text-civic dark:bg-civic/20 dark:text-seal-green' : 'text-ink-soft hover:bg-paper-warm hover:text-ink dark:hover:bg-board-line dark:hover:text-paper'}`}>
               <Icon name={link.icon} />
-              {link.label}
+              {t(link.label)}
             </Link>
           );
         })}
@@ -72,7 +75,7 @@ export default function AdminShell({ children, searchValue = '', onSearchChange,
           </div>
         </div>
         <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-md px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-red-50 hover:text-stamp-red dark:hover:bg-red-950/30">
-          <Icon name="logout" /> Log out
+          <Icon name="logout" /> {t('Log out')}
         </button>
       </div>
     </div>
@@ -85,15 +88,16 @@ export default function AdminShell({ children, searchValue = '', onSearchChange,
 
       <div className="lg:pl-72">
         <header className="sticky top-0 z-30 flex h-[72px] items-center gap-3 border-b border-paper-line bg-white/95 px-4 backdrop-blur dark:border-board-line dark:bg-board/95 sm:px-6">
-          <button onClick={() => setMobileOpen(true)} className="rounded-md p-2 text-ink-soft hover:bg-paper-warm lg:hidden" aria-label="Open navigation"><Icon name="menu" /></button>
+          <button onClick={() => setMobileOpen(true)} className="rounded-md p-2 text-ink-soft hover:bg-paper-warm lg:hidden" aria-label={t('Open navigation')}><Icon name="menu" /></button>
           <Link to="/admin/dashboard" className="text-lg font-bold text-civic lg:hidden">Civic AI</Link>
           {onSearchChange && (
             <div className="relative hidden max-w-lg flex-1 md:block">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-soft"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
-              <input value={searchValue} onChange={(event) => onSearchChange(event.target.value)} placeholder={searchPlaceholder} className="w-full rounded-lg border border-paper-line bg-paper-warm py-2.5 pl-12 pr-4 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/15 dark:border-board-line dark:bg-board-line dark:text-paper" />
+              <input value={searchValue} onChange={(event) => onSearchChange(event.target.value)} placeholder={t(searchPlaceholder)} className="w-full rounded-lg border border-paper-line bg-paper-warm py-2.5 pl-12 pr-4 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/15 dark:border-board-line dark:bg-board-line dark:text-paper" />
             </div>
           )}
           <div className="ml-auto flex items-center gap-2">
+            <LanguageSelect />
             <NotificationBell />
             <button onClick={toggleTheme} className="rounded-md p-2 text-ink-soft hover:bg-paper-warm dark:hover:bg-board-line" aria-label="Toggle color theme"><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-civic text-xs font-semibold text-white">{initials}</span>

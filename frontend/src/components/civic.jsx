@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * Shared "ticket board" visual primitives — see the design brief. These are
@@ -113,6 +114,7 @@ export function StampBadge({ label, tone = 'seal-green', size = 80, className = 
  * metrics: [{ label, value, note, unavailable, ratio? }]
  */
 export function MetricRow({ metrics, className = '' }) {
+  const { t } = useLanguage();
   return (
     <div
       className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${className}`}
@@ -120,7 +122,7 @@ export function MetricRow({ metrics, className = '' }) {
       {metrics.map((m, i) => (
         <div key={i} className="rounded-lg border border-paper-line bg-white px-4 py-4 dark:border-board-line dark:bg-board sm:py-5">
           <p className="text-2xl font-semibold tracking-tight text-ink dark:text-paper">{m.unavailable ? '—' : m.value}</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-ink-soft">{m.label}</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-ink-soft">{t(m.label)}</p>
           {m.ratio != null && (
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-paper-warm dark:bg-board-line">
               <div
@@ -129,7 +131,7 @@ export function MetricRow({ metrics, className = '' }) {
               />
             </div>
           )}
-          {m.note && <p className="text-[10px] text-ink-soft/80 mt-1">{m.note}</p>}
+          {m.note && <p className="text-[10px] text-ink-soft/80 mt-1">{t(m.note)}</p>}
         </div>
       ))}
     </div>

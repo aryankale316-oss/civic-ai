@@ -61,6 +61,9 @@ ALTER TABLE complaints ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS sentiment TEXT CHECK (sentiment IN ('Positive', 'Neutral', 'Negative'));
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS sentiment_score REAL;
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS source_language TEXT NOT NULL DEFAULT 'en';
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS ai_translation_used BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS ai_translation_note TEXT;
 
 -- Sentence embedding (all-MiniLM-L6-v2, 384 dims, pre-normalized) for each
 -- complaint's title+description, used for duplicate detection via cosine

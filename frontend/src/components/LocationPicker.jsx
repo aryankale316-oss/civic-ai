@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import '../lib/leafletIcons';
 import apiClient from '../api/client';
+import { useLanguage } from '../context/LanguageContext';
 
 const DEFAULT_CENTER = [20.5937, 78.9629]; // India centroid — used only until a pin is dropped
 const DEFAULT_ZOOM = 5;
@@ -17,6 +18,7 @@ function ClickHandler({ onSelect }) {
 }
 
 function LocateControl({ onLocate, disabled }) {
+  const { t } = useLanguage();
   const map = useMap();
   const [locating, setLocating] = useState(false);
 
@@ -43,12 +45,13 @@ function LocateControl({ onLocate, disabled }) {
       disabled={disabled || locating}
       className="absolute top-2 right-2 z-[1000] px-2.5 py-1 text-xs font-medium bg-white dark:bg-board text-ink dark:text-paper border border-paper-line dark:border-board-line hover:border-brass disabled:opacity-50"
     >
-      {locating ? 'Locating…' : '📍 Use my location'}
+      {locating ? t('Locating…') : `📍 ${t('Use my location')}`}
     </button>
   );
 }
 
 export default function LocationPicker({ latitude, longitude, onLocationChange, onAddressChange, disabled }) {
+  const { t } = useLanguage();
   const [geocoding, setGeocoding] = useState(false);
   const position = latitude != null && longitude != null ? [latitude, longitude] : null;
 
@@ -85,10 +88,10 @@ export default function LocationPicker({ latitude, longitude, onLocationChange, 
       </div>
       <p className="text-xs text-ink-soft mt-1">
         {geocoding
-          ? 'Looking up address…'
+          ? t('Looking up address…')
           : position
-          ? `Pinned: ${position[0].toFixed(5)}, ${position[1].toFixed(5)}`
-          : 'Click the map (or use your location) to pin the exact spot'}
+          ? `${t('Pinned')}: ${position[0].toFixed(5)}, ${position[1].toFixed(5)}`
+          : t('Click the map (or use your location) to pin the exact spot')}
       </p>
     </div>
   );

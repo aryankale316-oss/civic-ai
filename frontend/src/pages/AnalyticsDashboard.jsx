@@ -8,6 +8,7 @@ import SingleSeriesBarChart from '../components/charts/SingleSeriesBarChart';
 import PriorityDistributionChart from '../components/charts/PriorityDistributionChart';
 import PageTransition from '../components/ui/PageTransition';
 import { SkeletonCard } from '../components/ui/Skeleton';
+import { useLanguage } from '../context/LanguageContext';
 
 const MONTH_LABELS = [
   'Jan',
@@ -36,6 +37,7 @@ function formatHours(hours) {
 }
 
 export default function AnalyticsDashboard() {
+  const { t } = useLanguage();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
@@ -50,11 +52,11 @@ export default function AnalyticsDashboard() {
     <AdminShell>
       <PageTransition className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">
-          Performance overview
+          {t('Performance overview')}
         </p>
 
         <h1 className="mb-6 text-3xl font-display font-semibold text-ink dark:text-paper">
-          Analytics
+          {t('Analytics')}
         </h1>
 
         {error && <p className="mb-4 text-stamp-red">{error}</p>}

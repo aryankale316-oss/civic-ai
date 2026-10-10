@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -8,6 +9,7 @@ const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
  * previews; the caller decides when/how to actually upload them.
  */
 export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled = false }) {
+  const { t } = useLanguage();
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef(null);
@@ -84,9 +86,9 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
         }`}
       >
         <p className="text-sm text-ink-soft">
-          <span className="font-semibold text-civic dark:text-seal-green">Click to upload</span> or drag and drop
+          <span className="font-semibold text-civic dark:text-seal-green">{t('Click to upload')}</span> {t('or drag and drop')}
         </p>
-        <p className="text-xs text-ink-soft">JPEG, PNG, WEBP or GIF, up to 5MB each (max {maxFiles})</p>
+        <p className="text-xs text-ink-soft">{t('JPEG, PNG, WEBP or GIF, up to 5MB each (max')} {maxFiles})</p>
         <input
           ref={inputRef}
           type="file"
@@ -120,7 +122,7 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
                     removeAt(index);
                   }}
                   className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-ink text-paper text-xs leading-none opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label={`Remove ${file.name}`}
+                  aria-label={`${t('Remove photo')} ${file.name}`}
                 >
                   ✕
                 </button>

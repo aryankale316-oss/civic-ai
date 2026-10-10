@@ -19,7 +19,7 @@ const ERROR_MESSAGES = {
  * isn't torn down/rebuilt on every parent re-render (which would otherwise
  * interrupt an in-progress recording).
  */
-export function useSpeechRecognition({ onTranscriptChange, onListeningChange } = {}) {
+export function useSpeechRecognition({ onTranscriptChange, onListeningChange, language = 'en-US' } = {}) {
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState('');
   const recognitionRef = useRef(null);
@@ -37,7 +37,7 @@ export function useSpeechRecognition({ onTranscriptChange, onListeningChange } =
     const recognition = new SpeechRecognitionAPI();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    recognition.lang = language;
 
     recognition.onresult = (event) => {
       let transcript = '';
@@ -65,6 +65,10 @@ export function useSpeechRecognition({ onTranscriptChange, onListeningChange } =
     recognitionRef.current = recognition;
     return () => recognition.stop();
   }, []);
+
+  useEffect(() => {
+    if (recognitionRef.current) recognitionRef.current.lang = language;
+  }, [language]);
 
   const start = useCallback(() => {
     if (!recognitionRef.current) return;

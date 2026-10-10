@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { SkeletonCard } from '../components/ui/Skeleton';
 import PageTransition from '../components/ui/PageTransition';
+import { useLanguage } from '../context/LanguageContext';
 
 const TRACK_STEPS = [
   { key: 'submitted', label: 'Received', tone: 'brass' },
@@ -25,14 +26,15 @@ function trackIndex(status) {
 }
 
 function TicketTracker({ status }) {
+  const { t } = useLanguage();
   const current = trackIndex(status);
 
   if (status === 'rejected') {
     return (
       <div className="flex items-center gap-3">
-        <StatusFlap label="Received" tone="ink-soft" className="opacity-40" />
+        <StatusFlap label={t('Received')} tone="ink-soft" className="opacity-40" />
         <span className="w-4 h-px bg-paper-line dark:bg-board-line" />
-        <StampBadge label="Rejected" tone="stamp-red" size={64} className="text-[10px]" />
+        <StampBadge label={t('Rejected')} tone="stamp-red" size={64} className="text-[10px]" />
       </div>
     );
   }
@@ -43,17 +45,18 @@ function TicketTracker({ status }) {
         const reached = current >= i;
         return (
           <div key={step.key} className="flex items-center gap-3">
-            <StatusFlap label={step.label} tone={reached ? step.tone : 'ink-soft'} className={reached ? '' : 'opacity-40'} />
+            <StatusFlap label={t(step.label)} tone={reached ? step.tone : 'ink-soft'} className={reached ? '' : 'opacity-40'} />
             {i < TRACK_STEPS.length - 1 && <span className="w-4 h-px bg-paper-line dark:bg-board-line" />}
           </div>
         );
       })}
-      {status === 'resolved' && <StampBadge label="Resolved" tone="seal-green" size={64} className="text-[10px] ml-1" />}
+      {status === 'resolved' && <StampBadge label={t('Resolved')} tone="seal-green" size={64} className="text-[10px] ml-1" />}
     </div>
   );
 }
 
 export default function ComplaintDetail() {
+  const { t } = useLanguage();
   const { id } = useParams();
   const { user } = useAuth();
   const toast = useToast();
@@ -79,12 +82,12 @@ export default function ComplaintDetail() {
   const isOwner = complaint && user && user.id === complaint.user_id;
   const isStaff = user && (user.role === 'admin' || user.role === 'dept_admin');
   const backTo = isStaff ? '/admin/dashboard' : '/dashboard';
-  const backLabel = isStaff ? '← Back to all complaints' : '← Back to my complaints';
+  const backLabel = isStaff ? `← ${t('Back to all complaints')}` : `← ${t('Back to my complaints')}`;
 
   async function handleSubmitFeedback(e) {
     e.preventDefault();
     if (feedbackRating === 0) {
-      setFeedbackError('Please select a star rating');
+      setFeedbackError(t('Please select a star rating'));
       return;
     }
     setFeedbackError('');
@@ -145,7 +148,7 @@ export default function ComplaintDetail() {
           {backLabel}
         </Link>
 
-        {error && <p className="text-stamp-red mt-4">{error}</p>}
+        {error && <p className="text-stamp-red mt-4">{t(error)}</p>}
         {!complaint && !error && (
           <div className="mt-4">
             <SkeletonCard />
@@ -160,7 +163,7 @@ export default function ComplaintDetail() {
                 <h1 className="text-2xl font-semibold tracking-tight text-ink dark:text-paper sm:text-3xl">{complaint.title}</h1>
               </div>
 
-              <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-2">Ticket status</p>
+              <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-2">{t('Ticket status')}</p>
               <TicketTracker status={complaint.status} />
 
               <p className="text-ink-soft mt-5 mb-4">{complaint.description}</p>
@@ -169,7 +172,7 @@ export default function ComplaintDetail() {
                 <p className="text-sm text-ink-soft mb-2">📍 {complaint.location_text}</p>
               )}
               <p className="text-sm text-ink-soft mb-2">
-                👤 Assigned to: <span className="font-medium text-ink dark:text-paper">{complaint.assigned_officer_name || 'Unassigned'}</span>
+                👤 {t('Assigned to')}: <span className="font-medium text-ink dark:text-paper">{complaint.assigned_officer_name || t('Unassigned')}</span>
               </p>
               {complaint.latitude != null && complaint.longitude != null && (
                 <div className="mb-4">
@@ -266,38 +269,45 @@ export default function ComplaintDetail() {
               </div>
 
               <div className="border-t border-paper-line dark:border-board-line pt-4 mt-4">
-                <h2 className="text-sm font-medium text-ink dark:text-paper mb-2">AI Analysis</h2>
+                <h2 className="text-sm font-medium text-ink dark:text-paper mb-2">{t('AI Analysis')}</h2>
                 <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="text-ink-soft">Category:</span>
-                  <span className="font-medium text-ink dark:text-paper">{complaint.ai_category || 'N/A'}</span>
-                  <span className="text-ink-soft ml-3">Department:</span>
-                  <span className="font-medium text-ink dark:text-paper">{complaint.department_name || 'Unassigned'}</span>
-                  <span className="text-ink-soft ml-3">Priority:</span>
+                  <span className="text-ink-soft">{t('Category')}:</span>
+                  <span className="font-medium text-ink dark:text-paper">{complaint.ai_category ? t(complaint.ai_category) : 'N/A'}</span>
+                  <span className="text-ink-soft ml-3">{t('Department')}:</span>
+                  <span className="font-medium text-ink dark:text-paper">{complaint.department_name ? t(complaint.department_name) : t('Unassigned')}</span>
+                  <span className="text-ink-soft ml-3">{t('Priority')}:</span>
                   <PriorityBadge priority={complaint.ai_priority} />
                   {complaint.sentiment && (
                     <>
-                      <span className="text-ink-soft ml-3">Sentiment:</span>
+                      <span className="text-ink-soft ml-3">{t('Sentiment')}:</span>
                       <SentimentBadge sentiment={complaint.sentiment} />
                     </>
                   )}
                 </div>
                 {complaint.ai_confidence != null && (
                   <p className="text-xs font-mono text-ink-soft mt-2">
-                    Confidence: {(complaint.ai_confidence * 100).toFixed(1)}%
+                  {t('Confidence')}: {(complaint.ai_confidence * 100).toFixed(1)}%
+                  </p>
+                )}
+                {complaint.source_language === 'hi' && (
+                  <p className="mt-2 text-xs text-ink-soft" role="note">
+                    {complaint.ai_translation_used
+                      ? t('Experimental Hindi-to-English translation was used. AI text predictions are unvalidated; staff must review the original complaint before acting.')
+                      : t('Hindi translation was unavailable for this complaint; AI text results may be unreliable.')}
                   </p>
                 )}
                 {complaint.estimated_resolution_label && (
                   <p className="text-sm text-ink-soft mt-2">
-                    <span className="text-ink-soft">Estimated Resolution:</span>{' '}
+                    <span className="text-ink-soft">{t('Estimated Resolution')}:</span>{' '}
                     <span className="font-medium font-mono text-ink dark:text-paper">{complaint.estimated_resolution_label}</span>
-                    <span className="text-xs text-ink-soft"> (SLA-based estimate, not a guarantee)</span>
+                    <span className="text-xs text-ink-soft"> ({t('SLA-based estimate, not a guarantee')})</span>
                   </p>
                 )}
               </div>
 
               {complaint.status === 'resolved' && (
                 <div className="border-t border-paper-line dark:border-board-line pt-4 mt-4">
-                  <h2 className="text-sm font-medium text-ink dark:text-paper mb-2">Feedback</h2>
+                  <h2 className="text-sm font-medium text-ink dark:text-paper mb-2">{t('Feedback')}</h2>
 
                   {complaint.feedback_rating ? (
                     <div>
@@ -306,18 +316,18 @@ export default function ComplaintDetail() {
                         <p className="text-sm text-ink-soft mt-2">{complaint.feedback_review}</p>
                       )}
                       <p className="text-xs text-ink-soft mt-1">
-                        Rated {new Date(complaint.feedback_created_at).toLocaleDateString()}
+                        {t('Rated')} {new Date(complaint.feedback_created_at).toLocaleDateString()}
                       </p>
                     </div>
                   ) : isOwner ? (
                     <form onSubmit={handleSubmitFeedback}>
-                      <p className="text-sm text-ink-soft mb-2">How satisfied are you with the resolution?</p>
+                      <p className="text-sm text-ink-soft mb-2">{t('How satisfied are you with the resolution?')}</p>
                       <StarRating value={feedbackRating} onChange={setFeedbackRating} />
                       <textarea
                         value={feedbackReview}
                         onChange={(e) => setFeedbackReview(e.target.value)}
                         rows={3}
-                        placeholder="Optional review..."
+                        placeholder={t('Optional review...')}
                         className="w-full mt-3 px-3 py-2 border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper text-sm focus:outline-none focus:ring-2 focus:ring-brass placeholder:text-ink-soft"
                       />
                       {feedbackError && <p className="text-xs text-stamp-red mt-1">{feedbackError}</p>}
@@ -326,17 +336,17 @@ export default function ComplaintDetail() {
                         disabled={submittingFeedback}
                         className="mt-3 px-4 py-1.5 text-sm bg-ink text-paper hover:bg-ink/90 disabled:opacity-50"
                       >
-                        {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                        {submittingFeedback ? t('Submitting...') : t('Submit Feedback')}
                       </button>
                     </form>
                   ) : (
-                    <p className="text-sm text-ink-soft">No feedback submitted yet.</p>
+                    <p className="text-sm text-ink-soft">{t('No feedback submitted yet.')}</p>
                   )}
                 </div>
               )}
 
               <p className="text-xs font-mono text-ink-soft mt-4">
-                Submitted {new Date(complaint.created_at).toLocaleString()}
+                {t('Submitted')} {new Date(complaint.created_at).toLocaleString()}
               </p>
             </NoticeCard>
           </motion.div>

@@ -7,6 +7,7 @@ import DataTable from '../components/ui/DataTable';
 import { SkeletonRows } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import { StatusFlap } from '../components/civic';
+import { useLanguage } from '../context/LanguageContext';
 
 const emptyForm = { name: '', email: '', phone: '', department_id: '' };
 
@@ -31,6 +32,7 @@ const COLUMNS = [
 ];
 
 export default function AdminOfficers() {
+  const { t } = useLanguage();
   const [officers, setOfficers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,8 +111,8 @@ export default function AdminOfficers() {
   return (
     <AdminShell>
       <PageTransition className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">Field operations</p>
-        <h1 className="mb-6 text-3xl font-semibold tracking-tight text-ink dark:text-paper">Officer directory</h1>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">{t('Field operations')}</p>
+        <h1 className="mb-6 text-3xl font-semibold tracking-tight text-ink dark:text-paper">{t('Officer directory')}</h1>
 
         {error && <p className="text-stamp-red mb-4">{error}</p>}
 
@@ -119,7 +121,7 @@ export default function AdminOfficers() {
           className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-paper-line bg-white p-5 dark:border-board-line dark:bg-board"
         >
           <div>
-            <label className="block text-xs text-ink-soft mb-1">Name</label>
+            <label className="block text-xs text-ink-soft mb-1">{t('Name')}</label>
             <input
               required
               value={form.name}
@@ -128,7 +130,7 @@ export default function AdminOfficers() {
             />
           </div>
           <div>
-            <label className="block text-xs text-ink-soft mb-1">Email</label>
+            <label className="block text-xs text-ink-soft mb-1">{t('Email')}</label>
             <input
               required
               type="email"
@@ -138,7 +140,7 @@ export default function AdminOfficers() {
             />
           </div>
           <div>
-            <label className="block text-xs text-ink-soft mb-1">Phone</label>
+            <label className="block text-xs text-ink-soft mb-1">{t('Phone')}</label>
             <input
               value={form.phone}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
@@ -146,15 +148,15 @@ export default function AdminOfficers() {
             />
           </div>
           <div>
-            <label className="block text-xs text-ink-soft mb-1">Department</label>
+            <label className="block text-xs text-ink-soft mb-1">{t('Department')}</label>
             <select
               value={form.department_id}
               onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value }))}
               className={INPUT_CLASS}
             >
-              <option value="">Unassigned</option>
+              <option value="">{t('Unassigned')}</option>
               {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
+                <option key={d.id} value={d.id}>{t(d.name)}</option>
               ))}
             </select>
           </div>
@@ -163,7 +165,7 @@ export default function AdminOfficers() {
             disabled={creating}
             className="rounded-md bg-civic px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-civic-bright disabled:opacity-50"
           >
-            {creating ? 'Adding...' : 'Add Officer'}
+            {creating ? t('Adding...') : t('Add Officer')}
           </button>
         </form>
 
@@ -174,7 +176,7 @@ export default function AdminOfficers() {
             columns={COLUMNS}
             data={officers}
             searchPredicate={(o, q) => o.name.toLowerCase().includes(q) || o.email.toLowerCase().includes(q)}
-            searchPlaceholder="Search officers..."
+            searchPlaceholder={t('Search officers...')}
             emptyState={<EmptyState icon="👮" title="No officers added yet" />}
             renderRow={(o) => (
               <tr key={o.id} className="border-t border-paper-line dark:border-board-line hover:bg-paper-warm dark:hover:bg-board-line/40 transition-colors">
@@ -197,9 +199,9 @@ export default function AdminOfficers() {
                       onChange={(e) => setEditForm((f) => ({ ...f, department_id: e.target.value }))}
                       className={CELL_INPUT_CLASS}
                     >
-                      <option value="">Unassigned</option>
+                      <option value="">{t('Unassigned')}</option>
                       {departments.map((d) => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
+                      <option key={d.id} value={d.id}>{t(d.name)}</option>
                       ))}
                     </select>
                   ) : (
@@ -213,8 +215,8 @@ export default function AdminOfficers() {
                       onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
                       className={CELL_INPUT_CLASS}
                     >
-                      <option value="active">active</option>
-                      <option value="inactive">inactive</option>
+                      <option value="active">{t('active')}</option>
+                      <option value="inactive">{t('inactive')}</option>
                     </select>
                   ) : (
                     <StatusFlap label={o.status} tone={o.status === 'active' ? 'seal-green' : 'ink-soft'} />
@@ -226,13 +228,13 @@ export default function AdminOfficers() {
                 <td className="px-4 py-3">
                   {editingId === o.id ? (
                     <div className="flex gap-2">
-                      <button onClick={() => saveEdit(o.id)} className="text-xs text-seal-green hover:underline">Save</button>
-                      <button onClick={() => setEditingId(null)} className="text-xs text-ink-soft hover:underline">Cancel</button>
+                      <button onClick={() => saveEdit(o.id)} className="text-xs text-seal-green hover:underline">{t('Save')}</button>
+                      <button onClick={() => setEditingId(null)} className="text-xs text-ink-soft hover:underline">{t('Cancel')}</button>
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <button onClick={() => startEdit(o)} className="text-xs text-ink-soft hover:underline">Edit</button>
-                      <button onClick={() => handleDelete(o.id)} className="text-xs text-stamp-red hover:underline">Delete</button>
+                      <button onClick={() => startEdit(o)} className="text-xs text-ink-soft hover:underline">{t('Edit')}</button>
+                      <button onClick={() => handleDelete(o.id)} className="text-xs text-stamp-red hover:underline">{t('Delete')}</button>
                     </div>
                   )}
                 </td>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import PublicNav from '../components/PublicNav';
 import PageTransition from '../components/ui/PageTransition';
 import { TicketStub, NoticeCard } from '../components/civic';
+import { useLanguage } from '../context/LanguageContext';
 
 const FEATURES = [
   {
@@ -75,6 +76,7 @@ const STEPS = [
 ];
 
 export default function Landing() {
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen bg-paper dark:bg-board">
       <PublicNav />
@@ -85,18 +87,15 @@ export default function Landing() {
 
           <div className="relative mx-auto max-w-7xl">
             <p className="mb-4 inline-flex rounded-full bg-civic-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-civic dark:bg-civic/20 dark:text-seal-green">
-              AI-powered governance
+              {t('AI-powered governance')}
             </p>
 
             <h1 className="mb-5 max-w-3xl text-4xl font-bold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl">
-              Empowering Indian cities with AI-driven civic action.
+              {t('Empowering Indian cities with AI-driven civic action.')}
             </h1>
 
             <p className="mb-8 max-w-2xl text-lg leading-8 text-white/80">
-              Civic AI takes a citizen complaint about roads, water,
-              electricity, garbage, or safety and uses machine learning to
-              classify it, prioritize it, and get it in front of the right
-              department — with full tracking from submission to resolution.
+              {t('Civic AI takes a citizen complaint about roads, water, electricity, garbage, or safety and uses machine learning to classify it, prioritize it, and get it in front of the right department — with full tracking from submission to resolution.')}
             </p>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -104,21 +103,21 @@ export default function Landing() {
                 to="/register"
                 className="rounded-md bg-civic px-5 py-3 font-semibold text-white transition-colors hover:bg-civic-bright"
               >
-                Submit a complaint
+                {t('Submit a complaint')}
               </Link>
 
               <Link
                 to="/login"
                 className="rounded-md border border-white/30 bg-white/10 px-5 py-3 font-semibold text-white backdrop-blur transition-colors hover:bg-white/20"
               >
-                Citizen Login
+                {t('Citizen Login')}
               </Link>
 
               <Link
                 to="/admin/login"
                 className="px-4 py-3 text-sm font-medium text-white/80 hover:text-white"
               >
-                Staff portal
+                {t('Staff portal')}
               </Link>
             </div>
           </div>
@@ -127,7 +126,7 @@ export default function Landing() {
         <section className="border-y border-paper-line bg-white py-14 dark:border-board-line dark:bg-board">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <h2 className="mb-8 text-center text-2xl font-semibold tracking-tight text-ink dark:text-paper">
-              Built for transparent civic action
+              {t('Built for transparent civic action')}
             </h2>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -138,11 +137,11 @@ export default function Landing() {
 
                     <div>
                       <h3 className="mb-1 text-sm font-medium text-ink dark:text-paper">
-                        {f.title}
+                        {t(f.title)}
                       </h3>
 
                       <p className="text-xs leading-relaxed text-ink-soft">
-                        {f.body}
+                        {t(f.body)}
                       </p>
                     </div>
                   </div>
@@ -154,18 +153,18 @@ export default function Landing() {
 
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
           <h2 className="mb-8 text-center text-2xl font-semibold tracking-tight text-ink dark:text-paper">
-            How it works
+            {t('How it works')}
           </h2>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((s) => (
               <TicketStub key={s.n} number={s.n} className="h-full">
                 <h3 className="mb-1 mt-2 text-sm font-medium text-ink dark:text-paper">
-                  {s.title}
+                  {t(s.title)}
                 </h3>
 
                 <p className="text-xs leading-relaxed text-ink-soft">
-                  {s.body}
+                  {t(s.body)}
                 </p>
               </TicketStub>
             ))}
@@ -174,19 +173,18 @@ export default function Landing() {
 
         <section className="mx-auto max-w-3xl border-t border-paper-line px-6 py-12 text-center dark:border-board-line">
           <h2 className="mb-3 text-xl font-display font-semibold text-ink dark:text-paper">
-            Ready to report something?
+            {t('Ready to report something?')}
           </h2>
 
           <p className="mb-6 text-sm text-ink-soft">
-            Registration takes under a minute — no department knowledge
-            required.
+            {t('Registration takes under a minute — no department knowledge required.')}
           </p>
 
           <Link
             to="/register"
             className="inline-block bg-ink px-6 py-2.5 font-medium text-paper transition-colors hover:bg-ink/90"
           >
-            Get Started
+            {t('Get Started')}
           </Link>
         </section>
 
@@ -196,7 +194,7 @@ export default function Landing() {
               to="/about"
               className="underline hover:text-brass"
             >
-              About this project
+              {t('About this project')}
             </Link>
           </p>
         </footer>

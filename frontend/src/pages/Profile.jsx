@@ -5,10 +5,12 @@ import { NoticeCard } from '../components/civic';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import PageTransition from '../components/ui/PageTransition';
+import { useLanguage } from '../context/LanguageContext';
 
 const inputClass = 'w-full px-3 py-2 border border-ink/30 dark:border-paper-line/30 bg-white dark:bg-board text-ink dark:text-paper text-sm';
 
 export default function Profile() {
+  const { t } = useLanguage();
   const { updateUser } = useAuth();
   const toast = useToast();
   const [profile, setProfile] = useState({ name: '', email: '', role: '' });
@@ -68,31 +70,31 @@ export default function Profile() {
     <div className="min-h-screen bg-paper dark:bg-board">
       <Navbar />
       <PageTransition className="max-w-2xl mx-auto px-6 py-8">
-        <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">Account</p>
-        <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-6">Profile & settings</h1>
+        <p className="text-xs uppercase tracking-wide text-ink-soft font-mono mb-1">{t('Account')}</p>
+        <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-6">{t('Profile & settings')}</h1>
         {error && <p className="text-stamp-red text-sm mb-4">{error}</p>}
-        {loading ? <p className="text-ink-soft">Loading profile…</p> : (
+        {loading ? <p className="text-ink-soft">{t('Loading profile…')}</p> : (
           <div className="space-y-6">
-            <NoticeCard title="Personal details">
+            <NoticeCard title={t('Personal details')}>
               <form onSubmit={saveProfile} className="space-y-4">
-                <label className="block text-sm text-ink-soft">Name
+                <label className="block text-sm text-ink-soft">{t('Name')}
                   <input required value={profile.name} onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))} className={`${inputClass} mt-1`} />
                 </label>
-                <label className="block text-sm text-ink-soft">Email
+                <label className="block text-sm text-ink-soft">{t('Email')}
                   <input required type="email" value={profile.email} onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))} className={`${inputClass} mt-1`} />
                 </label>
-                <p className="text-xs text-ink-soft">Account type: {profile.role}</p>
-                <button disabled={savingProfile} className="px-4 py-2 bg-ink text-paper text-sm disabled:opacity-60">{savingProfile ? 'Saving…' : 'Save profile'}</button>
+                <p className="text-xs text-ink-soft">{t('Account type:')} {profile.role}</p>
+                <button disabled={savingProfile} className="px-4 py-2 bg-ink text-paper text-sm disabled:opacity-60">{savingProfile ? t('Saving…') : t('Save profile')}</button>
               </form>
             </NoticeCard>
-            <NoticeCard title="Change password">
+            <NoticeCard title={t('Change password')}>
               <form onSubmit={savePassword} className="space-y-4">
                 {[['current_password', 'Current password'], ['new_password', 'New password (at least 8 characters)'], ['confirm_password', 'Confirm new password']].map(([field, label]) => (
-                  <label key={field} className="block text-sm text-ink-soft">{label}
+                  <label key={field} className="block text-sm text-ink-soft">{t(label)}
                     <input required type="password" minLength={field === 'new_password' ? 8 : undefined} value={password[field]} onChange={(e) => setPassword((p) => ({ ...p, [field]: e.target.value }))} className={`${inputClass} mt-1`} />
                   </label>
                 ))}
-                <button disabled={savingPassword} className="px-4 py-2 bg-ink text-paper text-sm disabled:opacity-60">{savingPassword ? 'Updating…' : 'Update password'}</button>
+                <button disabled={savingPassword} className="px-4 py-2 bg-ink text-paper text-sm disabled:opacity-60">{savingPassword ? t('Updating…') : t('Update password')}</button>
               </form>
             </NoticeCard>
           </div>

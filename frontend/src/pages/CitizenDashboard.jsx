@@ -8,8 +8,10 @@ import { SkeletonRows } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import FloatingActionButton from '../components/ui/FloatingActionButton';
 import PageTransition from '../components/ui/PageTransition';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function CitizenDashboard() {
+  const { t } = useLanguage();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -28,36 +30,36 @@ export default function CitizenDashboard() {
       <PageTransition className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">Citizen dashboard</p>
-            <h1 className="text-3xl font-semibold tracking-tight text-ink dark:text-paper">My complaints</h1>
-            <p className="mt-2 text-sm text-ink-soft">Track every report from submission through resolution.</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">{t('Citizen dashboard')}</p>
+            <h1 className="text-3xl font-semibold tracking-tight text-ink dark:text-paper">{t('My complaints')}</h1>
+            <p className="mt-2 text-sm text-ink-soft">{t('Track every report from submission through resolution.')}</p>
           </div>
           <Link
             to="/complaints/new"
             className="hidden rounded-md bg-civic px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-civic-bright sm:inline-block"
           >
-            New complaint
+            {t('New complaint')}
           </Link>
         </div>
 
         {!loading && !error && (() => {
           const count = (status) => complaints.filter((c) => c.status === status).length;
           return <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {[['Total reports', complaints.length, 'bg-[#0b1424] text-white'], ['Pending', count('submitted'), 'bg-amber-50 text-amber-800'], ['In progress', count('in_progress'), 'bg-blue-50 text-blue-800'], ['Resolved', count('resolved'), 'bg-emerald-50 text-emerald-800']].map(([label, value, tone]) => <div key={label} className={`rounded-2xl p-5 border border-paper-line shadow-sm ${tone}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-70">{label}</p><p className="mt-2 text-3xl font-bold">{value}</p></div>)}
+            {[['Total reports', complaints.length, 'bg-[#0b1424] text-white'], ['Pending', count('submitted'), 'bg-amber-50 text-amber-800'], ['In progress', count('in_progress'), 'bg-blue-50 text-blue-800'], ['Resolved', count('resolved'), 'bg-emerald-50 text-emerald-800']].map(([label, value, tone]) => <div key={label} className={`rounded-2xl p-5 border border-paper-line shadow-sm ${tone}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-70">{t(label)}</p><p className="mt-2 text-3xl font-bold">{value}</p></div>)}
           </div>;
         })()}
 
         {loading && <SkeletonRows rows={4} />}
-        {error && <p className="text-stamp-red">{error}</p>}
+        {error && <p className="text-stamp-red">{t(error)}</p>}
 
         {!loading && !error && complaints.length === 0 && (
           <EmptyState
             icon="📭"
-            title="No complaints yet"
-            description="Submit your first complaint and we'll classify, route, and track it for you."
+            title={t('No complaints yet')}
+            description={t("Submit your first complaint and we'll classify, route, and track it for you.")}
             action={
               <Link to="/complaints/new" className="px-4 py-2 bg-ink text-paper text-sm hover:bg-ink/90">
-                Submit a complaint
+                {t('Submit a complaint')}
               </Link>
             }
           />
@@ -66,10 +68,10 @@ export default function CitizenDashboard() {
         {complaints.length > 0 && (
           <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              ['Total', complaints.length],
-              ['Submitted', complaints.filter((c) => c.status === 'submitted').length],
-              ['In progress', complaints.filter((c) => c.status === 'in_progress').length],
-              ['Resolved', complaints.filter((c) => c.status === 'resolved').length],
+              [t('Total'), complaints.length],
+              [t('Submitted'), complaints.filter((c) => c.status === 'submitted').length],
+              [t('In progress'), complaints.filter((c) => c.status === 'in_progress').length],
+              [t('Resolved'), complaints.filter((c) => c.status === 'resolved').length],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg border border-paper-line bg-white p-4 dark:border-board-line dark:bg-board">
                 <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">{label}</p>

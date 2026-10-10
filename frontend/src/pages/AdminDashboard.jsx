@@ -10,6 +10,7 @@ import PageTransition from '../components/ui/PageTransition';
 import DataTable from '../components/ui/DataTable';
 import { SkeletonRows } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
+import { useLanguage } from '../context/LanguageContext';
 
 const STATUS_OPTIONS = ['submitted', 'in_progress', 'resolved', 'rejected'];
 
@@ -128,6 +129,7 @@ function OperationsSidebar() {
 }
 
 export default function AdminDashboard() {
+  const { t } = useLanguage();
   const [complaints, setComplaints] = useState([]);
   const [officers, setOfficers] = useState([]);
   const [allDepartments, setAllDepartments] = useState([]);
@@ -325,11 +327,11 @@ export default function AdminDashboard() {
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">
-              Operations
+              {t('Operations')}
             </p>
 
             <h1 className="text-2xl font-semibold tracking-tight text-ink dark:text-paper sm:text-3xl">
-              Ticket Queue
+              {t('Ticket Queue')}
             </h1>
 
             <p className="mt-2 text-sm text-ink-soft">
@@ -344,7 +346,7 @@ export default function AdminDashboard() {
             onClick={loadComplaints}
             className="inline-flex items-center justify-center rounded-md border border-paper-line bg-white px-4 py-2.5 text-sm font-semibold text-civic hover:bg-civic-soft dark:border-board-line dark:bg-board dark:text-seal-green dark:hover:bg-civic/15"
           >
-            Refresh queue
+            {t('Refresh queue')}
           </button>
         </div>
 
@@ -355,7 +357,7 @@ export default function AdminDashboard() {
               className="rounded-lg border border-paper-line bg-white px-4 py-4 dark:border-board-line dark:bg-board"
             >
               <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                {metric.label}
+                {t(metric.label)}
               </p>
 
               <p
@@ -373,14 +375,14 @@ export default function AdminDashboard() {
               htmlFor="mobile-complaint-search"
               className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-ink-soft"
             >
-              Search
+              {t('Search')}
             </label>
 
             <input
               id="mobile-complaint-search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search grievances or citizens..."
+              placeholder={t('Search grievances or citizens...')}
               className="w-full rounded-md border border-paper-line bg-paper-warm px-3 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/15 dark:border-board-line dark:bg-board-line dark:text-paper"
             />
           </div>
@@ -391,7 +393,7 @@ export default function AdminDashboard() {
                 htmlFor="status-filter"
                 className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-ink-soft"
               >
-                Status
+                {t('Status')}
               </label>
 
               <select
@@ -400,11 +402,11 @@ export default function AdminDashboard() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className={`${SELECT_CLASS} w-full`}
               >
-                <option value="all">All statuses</option>
+                <option value="all">{t('All statuses')}</option>
 
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s} value={s}>
-                    {s.replace('_', ' ')}
+                    {t(s.replace('_', ' '))}
                   </option>
                 ))}
               </select>
@@ -415,7 +417,7 @@ export default function AdminDashboard() {
                 htmlFor="department-filter"
                 className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-ink-soft"
               >
-                Department
+                {t('Department')}
               </label>
 
               <select
@@ -424,11 +426,11 @@ export default function AdminDashboard() {
                 onChange={(e) => setDepartmentFilter(e.target.value)}
                 className={`${SELECT_CLASS} w-full`}
               >
-                <option value="all">All departments</option>
+                <option value="all">{t('All departments')}</option>
 
                 {departments.map((d) => (
                   <option key={d} value={d}>
-                    {d}
+                    {t(d)}
                   </option>
                 ))}
               </select>
@@ -441,7 +443,7 @@ export default function AdminDashboard() {
                 onChange={(e) => setFlaggedOnly(e.target.checked)}
                 className="h-4 w-4 accent-civic"
               />
-              Flagged only
+              {t('Flagged only')}
             </label>
           </div>
         </div>
@@ -485,6 +487,11 @@ export default function AdminDashboard() {
 
                   <p className="mt-1 text-xs text-ink-soft">
                     ID: CIV-{String(c.id).padStart(5, '0')}
+                    {c.source_language === 'hi' && (
+                      <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
+                        {t('Hindi complaint — manual routing')}
+                      </span>
+                    )}
                   </p>
                 </td>
 
@@ -530,14 +537,23 @@ export default function AdminDashboard() {
 
                 <td className="px-4 py-3">
                   <PriorityBadge priority={c.ai_priority} />
+                  {c.source_language === 'hi' && (
+                    <p className="mt-1 max-w-28 text-[10px] leading-4 text-amber-700 dark:text-amber-300">
+                      {t('Unverified Hindi AI priority')}
+                    </p>
+                  )}
                 </td>
 
                 <td className="px-4 py-3">
-                  <SentimentBadge sentiment={c.sentiment} />
+                  {c.sentiment ? (
+                    <SentimentBadge sentiment={c.sentiment} />
+                  ) : c.source_language === 'hi' ? (
+                    <span className="text-xs text-ink-soft">{t('Not analyzed for Hindi')}</span>
+                  ) : null}
                 </td>
 
                 <td className="px-4 py-3 font-mono text-ink-soft">
-                  {c.estimated_resolution_label || '—'}
+                  {c.estimated_resolution_label || (c.source_language === 'hi' ? t('Not estimated for Hindi') : '—')}
                 </td>
 
                 <td
@@ -551,7 +567,7 @@ export default function AdminDashboard() {
                     }
                     className={`${SELECT_CLASS} max-w-36`}
                   >
-                    <option value="">Unassigned</option>
+                    <option value="">{t('Unassigned')}</option>
 
                     {officers.map((o) => (
                       <option key={o.id} value={o.id}>
@@ -644,9 +660,23 @@ export default function AdminDashboard() {
                 </p>
               </section>
 
+              {selected.source_language === 'hi' && (
+                <section
+                  className="rounded-xl border border-amber-400/50 bg-amber-950/30 p-4 text-amber-100"
+                  role="note"
+                >
+                  <p className="text-sm font-semibold">
+                    {t('Hindi AI results are experimental')}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-amber-100/80">
+                    {t('Verify the category and priority against the original Hindi complaint before taking action. Priority may be a fallback, not a validated Hindi prediction. Sentiment and resolution time are not generated for Hindi complaints.')}
+                  </p>
+                </section>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <section className="rounded-xl border border-[#263750] p-4">
-                  <p className="text-xs text-[#a6b6c8]">Priority</p>
+                  <p className="text-xs text-[#a6b6c8]">{t('Priority')}</p>
 
                   <div className="mt-2">
                     <PriorityBadge priority={selected.ai_priority} />
@@ -654,7 +684,7 @@ export default function AdminDashboard() {
                 </section>
 
                 <section className="rounded-xl border border-[#263750] p-4">
-                  <p className="text-xs text-[#a6b6c8]">Status</p>
+                  <p className="text-xs text-[#a6b6c8]">{t('Status')}</p>
 
                   <div className="mt-2">
                     <StatusBadge status={selected.status} />
@@ -681,7 +711,7 @@ export default function AdminDashboard() {
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>
-                      {s.replace('_', ' ')}
+                      {t(s.replace('_', ' '))}
                     </option>
                   ))}
                 </select>
@@ -709,7 +739,7 @@ export default function AdminDashboard() {
                   }}
                   className="mt-2 w-full rounded-lg border border-[#263750] bg-[#0b1424] p-3 text-sm"
                 >
-                  <option value="">Unassigned</option>
+                  <option value="">{t('Unassigned')}</option>
 
                   {officers.map((o) => (
                     <option key={o.id} value={o.id}>

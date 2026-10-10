@@ -1,9 +1,12 @@
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function VoiceInputButton({ onTranscriptChange, onListeningChange, disabled }) {
+  const { language, speechLocale, t } = useLanguage();
   const { isSupported, isListening, error, start, stop } = useSpeechRecognition({
     onTranscriptChange,
     onListeningChange,
+    language: speechLocale,
   });
 
   if (!isSupported) return null;
@@ -21,9 +24,9 @@ export default function VoiceInputButton({ onTranscriptChange, onListeningChange
         }`}
       >
         <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-stamp-red animate-pulse' : 'bg-ink-soft'}`} />
-        {isListening ? 'Listening… tap to stop' : 'Speak description'}
+        {isListening ? t('Listening… tap to stop') : t('Speak description')}
       </button>
-      {error && <span className="text-xs text-stamp-red">{error}</span>}
+      {error && <span className="text-xs text-stamp-red">{language === 'en' ? error : t(error)}</span>}
     </span>
   );
 }

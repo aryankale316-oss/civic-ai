@@ -4,6 +4,7 @@ import apiClient from '../api/client';
 import AdminShell from '../components/AdminShell';
 import { useToast } from '../context/ToastContext';
 import PageTransition from '../components/ui/PageTransition';
+import { useLanguage } from '../context/LanguageContext';
 
 const REPORTS = [
   { type: 'complaints', title: 'Complaint Report', description: 'Full list of complaints with citizen, department, priority, status, and sentiment.', icon: '📋' },
@@ -19,6 +20,7 @@ const FORMATS = [
 ];
 
 export default function AdminReports() {
+  const { t } = useLanguage();
   const [downloading, setDownloading] = useState(null);
   const [error, setError] = useState('');
   const toast = useToast();
@@ -37,7 +39,7 @@ export default function AdminReports() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success('Report downloaded');
+      toast.success(t('Report downloaded'));
     } catch {
       const message = `Failed to generate the ${type} report.`;
       setError(message);
@@ -50,9 +52,9 @@ export default function AdminReports() {
   return (
     <AdminShell>
       <PageTransition className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">Records office</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-ink dark:text-paper mb-2">Reports & analytics</h1>
-        <p className="mb-7 text-sm text-ink-soft">Generate operational records in CSV, Excel, or PDF using current platform data.</p>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">{t('Records office')}</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-ink dark:text-paper mb-2">{t('Reports & analytics')}</h1>
+        <p className="mb-7 text-sm text-ink-soft">{t('Generate operational records in CSV, Excel, or PDF using current platform data.')}</p>
 
         {error && <p className="text-stamp-red mb-4">{error}</p>}
 
@@ -67,9 +69,9 @@ export default function AdminReports() {
               <div className="h-full rounded-lg border border-paper-line bg-white p-5 dark:border-board-line dark:bg-board">
                 <div className="flex items-center gap-2 mb-1 mt-1">
                   <span className="text-lg">{report.icon}</span>
-                  <h2 className="text-sm font-medium text-ink dark:text-paper">{report.title}</h2>
+                  <h2 className="text-sm font-medium text-ink dark:text-paper">{t(report.title)}</h2>
                 </div>
-                <p className="text-xs text-ink-soft mb-3">{report.description}</p>
+                <p className="text-xs text-ink-soft mb-3">{t(report.description)}</p>
                 <div className="flex gap-2">
                   {FORMATS.map((f) => {
                     const key = `${report.type}-${f.format}`;

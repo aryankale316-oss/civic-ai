@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageSelect from './LanguageSelect';
 import NotificationBell from './NotificationBell';
 
 const CITIZEN_LINKS = [{ to: '/complaints/new', label: 'New Complaint' }];
@@ -35,6 +37,7 @@ function ThemeToggle() {
 }
 
 function UserMenu({ user, onLogout }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -80,13 +83,13 @@ function UserMenu({ user, onLogout }) {
               onClick={() => setOpen(false)}
               className="block px-4 py-2.5 text-sm text-ink dark:text-paper hover:bg-paper-warm dark:hover:bg-board-line"
             >
-              Profile & settings
+              {t('Profile & settings')}
             </Link>
             <button
               onClick={onLogout}
               className="w-full text-left px-4 py-2.5 text-sm text-stamp-red hover:bg-paper-warm dark:hover:bg-board-line"
             >
-              Log out
+              {t('Log out')}
             </button>
           </motion.div>
         )}
@@ -100,6 +103,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useLanguage();
 
   const isStaff = user?.role === 'admin' || user?.role === 'dept_admin';
 
@@ -136,7 +140,7 @@ export default function Navbar() {
                         : 'border-transparent text-ink-soft hover:text-ink dark:hover:text-paper'
                     }`}
                   >
-                    {link.label}
+                    {t(link.label)}
                   </Link>
                 );
               })}
@@ -147,6 +151,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           {user && (
             <>
+              {user.role === 'citizen' && <LanguageSelect />}
               <button
                 onClick={() => setMobileOpen((o) => !o)}
                 className="flex h-9 w-9 items-center justify-center rounded-md text-ink-soft hover:bg-paper-warm md:hidden dark:hover:bg-board-line"
@@ -179,7 +184,7 @@ export default function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className="px-3 py-2 text-sm text-ink-soft hover:bg-paper-warm dark:hover:bg-board-line"
                 >
-                  {link.label}
+                  {t(link.label)}
                 </Link>
               ))}
             </div>
@@ -188,9 +193,9 @@ export default function Navbar() {
       </AnimatePresence>
       {user?.role === 'citizen' && (
         <div className="fixed bottom-4 left-4 right-4 z-50 flex items-center justify-around rounded-2xl border border-white/10 bg-[#0b1424]/95 px-2 py-2 text-xs text-[#a6b6c8] shadow-2xl backdrop-blur md:hidden">
-          <Link to="/dashboard" className={`px-3 py-2 ${location.pathname === '/dashboard' ? 'text-[#55e0ce]' : ''}`}>Home</Link>
-          <Link to="/complaints/new" className={`rounded-xl px-3 py-2 ${location.pathname === '/complaints/new' ? 'bg-[#55e0ce] text-[#0b1424]' : ''}`}>Report</Link>
-          <Link to="/profile" className={`px-3 py-2 ${location.pathname === '/profile' ? 'text-[#55e0ce]' : ''}`}>Profile</Link>
+          <Link to="/dashboard" className={`px-3 py-2 ${location.pathname === '/dashboard' ? 'text-[#55e0ce]' : ''}`}>{t('Home')}</Link>
+          <Link to="/complaints/new" className={`rounded-xl px-3 py-2 ${location.pathname === '/complaints/new' ? 'bg-[#55e0ce] text-[#0b1424]' : ''}`}>{t('Report')}</Link>
+          <Link to="/profile" className={`px-3 py-2 ${location.pathname === '/profile' ? 'text-[#55e0ce]' : ''}`}>{t('Profile')}</Link>
         </div>
       )}
     </nav>

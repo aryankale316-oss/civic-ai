@@ -13,10 +13,25 @@ const router = express.Router();
 
 const DUPLICATE_SIMILARITY_THRESHOLD = 0.82;
 const MAX_DUPLICATE_MATCHES = 5;
+const HI_STATUS_LABELS = {
+    submitted: 'प्राप्त',
+    in_progress: 'कार्य प्रगति पर',
+    resolved: 'समाधान हुआ',
+    rejected: 'अस्वीकृत',
+};
 
 async function fetchEmbedding(text) {
     const { data } = await axios.post(`${process.env.AI_SERVICE_URL}/embed`, { text }, { timeout: 10000 });
     return data.embedding;
+}
+
+async function prepareAnalysisText(text) {
+    const { data } = await axios.post(
+        `${process.env.AI_SERVICE_URL}/prepare-text`,
+        { text },
+        { timeout: 180000 }
+    );
+    return data;
 }
 
 async function analyzeImage(filePath) {
@@ -53,7 +68,9 @@ const FAKE_SCORE_THRESHOLD = 0.5;
 // backend already computes independently (spam score, near-duplicate and
 // repeated-submission detection via embeddings) into one composite score.
 function computeFakeScore({ gibberishResult, spamScore, isRepeatedSubmission, duplicateCount }) {
-    let score = gibberishResult.gibberish_score * 0.6;
+    // Give strong gibberish signals enough weight to cross the review
+    // threshold on their own; this remains a staff-review flag, not a rejection.
+    let score = gibberishResult.gibberish_score * 0.8;
     const signals = [...gibberishResult.gibberish_signals];
 
     if (spamScore != null && spamScore >= 0.5) {
@@ -139,6 +156,7 @@ const IMAGE_COLUMNS = `id, complaint_id, file_path, original_name, mime_type, si
 const COMPLAINT_SELECT = `
     SELECT c.id, c.title, c.description, c.location_text, c.latitude, c.longitude, c.ai_category,
            c.ai_priority, c.ai_confidence, c.sentiment, c.sentiment_score,
+           c.source_language, c.ai_translation_used, c.ai_translation_note,
            c.estimated_resolution_hours, c.estimated_resolution_label, c.status, c.created_at, c.updated_at, c.resolved_at,
            c.user_id, u.name AS citizen_name, d.id AS department_id, d.name AS department_name,
            c.assigned_officer_id, o.name AS assigned_officer_name,
@@ -165,27 +183,46 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     const combinedText = `${title}. ${description}`;
+    let textPreparation;
+    try {
+        textPreparation = await prepareAnalysisText(combinedText);
+    } catch (err) {
+        console.error('Language preparation failed; submitting with original text:', err.message);
+        textPreparation = {
+            source_language: /[\u0900-\u097f]/u.test(combinedText) ? 'hi' : 'en',
+            analysis_text: combinedText,
+            translation_used: false,
+            translation_note: 'Text preparation service unavailable; Hindi analysis may be unreliable.',
+        };
+    }
+    const analysisText = textPreparation.analysis_text || combinedText;
 
     const [aiResult, sentimentResult, moderationResult, fakeResult] = await Promise.all([
         axios
-            .post(`${process.env.AI_SERVICE_URL}/classify`, { text: combinedText })
+            .post(`${process.env.AI_SERVICE_URL}/classify`, { text: analysisText })
             .then((r) => r.data)
             .catch((err) => {
                 console.error('AI classification call failed, falling back to defaults:', err.message);
                 return { category: null, department: null, priority: 'Medium', confidence: 0 };
             }),
-        axios
-            .post(`${process.env.AI_SERVICE_URL}/sentiment`, { text: combinedText })
+        textPreparation.source_language === 'hi'
+            ? Promise.resolve({ sentiment: null, score: null })
+            : axios
+            .post(`${process.env.AI_SERVICE_URL}/sentiment`, { text: analysisText })
             .then((r) => r.data)
             .catch((err) => {
                 console.error('Sentiment analysis call failed:', err.message);
                 return { sentiment: null, score: null };
             }),
-        moderateText(combinedText).catch((err) => {
+        (textPreparation.source_language === 'hi'
+            ? Promise.resolve({ is_profane: false, spam_score: null, spam_signals: [] })
+            : moderateText(analysisText)).catch((err) => {
             console.error('Moderation check failed:', err.message);
             return { is_profane: false, spam_score: null, spam_signals: [] };
         }),
-        detectFakeText(combinedText).catch((err) => {
+        (textPreparation.source_language === 'hi'
+            ? Promise.resolve({ gibberish_score: 0, gibberish_signals: [] })
+            : detectFakeText(analysisText)).catch((err) => {
             console.error('Fake-complaint check failed:', err.message);
             return { gibberish_score: 0, gibberish_signals: [] };
         }),
@@ -199,10 +236,12 @@ router.post('/', requireAuth, async (req, res) => {
     });
 
     const [deptRow, resolutionResult] = await Promise.all([
-        aiResult.department
+        aiResult.department && textPreparation.source_language !== 'hi'
             ? pool.query('SELECT id FROM departments WHERE name = $1', [aiResult.department])
             : Promise.resolve({ rows: [] }),
-        axios
+        textPreparation.source_language === 'hi'
+            ? Promise.resolve({ estimated_hours: null, estimated_label: null })
+            : axios
             .post(`${process.env.AI_SERVICE_URL}/predict-resolution`, {
                 category: aiResult.category,
                 priority: aiResult.priority,
@@ -217,9 +256,9 @@ router.post('/', requireAuth, async (req, res) => {
 
     const insertResult = await pool.query(
         `INSERT INTO complaints
-            (user_id, title, description, location_text, latitude, longitude, ai_category, department_id, ai_priority, ai_confidence, sentiment, sentiment_score, estimated_resolution_hours, estimated_resolution_label, is_profane, spam_score, spam_signals, fake_score, fake_signals, is_likely_fake)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
-         RETURNING id`,
+            (user_id, title, description, location_text, latitude, longitude, ai_category, department_id, ai_priority, ai_confidence, sentiment, sentiment_score, source_language, ai_translation_used, ai_translation_note, estimated_resolution_hours, estimated_resolution_label, is_profane, spam_score, spam_signals, fake_score, fake_signals, is_likely_fake)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+         RETURNING id, status, created_at`,
         [
             req.user.id,
             title,
@@ -230,9 +269,12 @@ router.post('/', requireAuth, async (req, res) => {
             aiResult.category,
             departmentId,
             aiResult.priority,
-            aiResult.confidence,
+            textPreparation.source_language === 'hi' ? null : aiResult.confidence,
             sentimentResult.sentiment,
             sentimentResult.score,
+            textPreparation.source_language || 'en',
+            Boolean(textPreparation.translation_used),
+            textPreparation.translation_note || null,
             resolutionResult.estimated_hours,
             resolutionResult.estimated_label,
             moderationResult.is_profane,
@@ -247,7 +289,7 @@ router.post('/', requireAuth, async (req, res) => {
     const complaintId = insertResult.rows[0].id;
 
     try {
-        const embedding = await fetchEmbedding(combinedText);
+        const embedding = await fetchEmbedding(analysisText);
         await pool.query(
             'INSERT INTO complaint_embeddings (complaint_id, embedding) VALUES ($1, $2)',
             [complaintId, embedding]
@@ -276,16 +318,32 @@ router.post('/', requireAuth, async (req, res) => {
         console.error('Embedding generation failed, duplicate detection will skip this complaint:', err.message);
     }
 
-    const { rows } = await pool.query(`${COMPLAINT_SELECT} WHERE c.id = $1`, [complaintId]);
-    const complaint = stripModerationFields(rows[0], req.user.role);
+    let complaint = {
+        id: complaintId,
+        title,
+        description,
+        location_text: location_text || null,
+        status: insertResult.rows[0].status,
+        created_at: insertResult.rows[0].created_at,
+    };
+    try {
+        const { rows } = await pool.query(`${COMPLAINT_SELECT} WHERE c.id = $1`, [complaintId]);
+        if (rows[0]) complaint = stripModerationFields(rows[0], req.user.role);
+    } catch (err) {
+        // The complaint is already committed. A failure to load the expanded
+        // response must not make the citizen think the submission failed.
+        console.error('Complaint saved but response details could not be loaded:', err);
+    }
 
     try {
         await createNotification({
             userId: req.user.id,
             complaintId,
             type: 'complaint_submitted',
-            title: 'Complaint submitted',
-            message: `Your complaint "${title}" was submitted successfully. Reference: CIV-${String(complaintId).padStart(5, '0')}.`,
+            title: textPreparation.source_language === 'hi' ? 'शिकायत दर्ज की गई' : 'Complaint submitted',
+            message: textPreparation.source_language === 'hi'
+                ? `आपकी शिकायत "${title}" सफलतापूर्वक दर्ज की गई। संदर्भ: CIV-${String(complaintId).padStart(5, '0')}.`
+                : `Your complaint "${title}" was submitted successfully. Reference: CIV-${String(complaintId).padStart(5, '0')}.`,
         });
     } catch (err) {
         console.error('Citizen submission notification failed:', err.message);
@@ -297,7 +355,9 @@ router.post('/', requireAuth, async (req, res) => {
             complaintId,
             type: 'new_complaint',
             title: 'New complaint received',
-            message: `${title} — ${aiResult.category || 'Uncategorized'} (${aiResult.priority} priority, routed by AI at ${Math.round((aiResult.confidence || 0) * 100)}% confidence)`,
+            message: textPreparation.source_language === 'hi'
+                ? `Hindi complaint received; AI category/priority are experimental and require staff review before department routing: ${title}`
+                : `${title} — ${aiResult.category || 'Uncategorized'} (${aiResult.priority} priority, routed by AI at ${Math.round((aiResult.confidence || 0) * 100)}% confidence)`,
         });
     } catch (err) {
         console.error('Department admin notification failed:', err.message);
@@ -313,7 +373,8 @@ router.post('/check-duplicates', requireAuth, async (req, res) => {
     }
 
     try {
-        const embedding = await fetchEmbedding(`${title}. ${description}`);
+        const textPreparation = await prepareAnalysisText(`${title}. ${description}`);
+        const embedding = await fetchEmbedding(textPreparation.analysis_text || `${title}. ${description}`);
         const matches = await findSimilarComplaints(embedding, null);
         res.json({ possible_duplicates: matches });
     } catch (err) {
@@ -524,8 +585,10 @@ router.patch('/:id/status', requireAuth, requireAnyRole(['admin', 'dept_admin'])
             userId: complaint.user_id,
             complaintId: complaint.id,
             type: 'status_changed',
-            title: 'Complaint status updated',
-            message: `Your complaint "${complaint.title}" is now ${status.replace('_', ' ')}`,
+            title: complaint.source_language === 'hi' ? 'शिकायत की स्थिति अपडेट हुई' : 'Complaint status updated',
+            message: complaint.source_language === 'hi'
+                ? `आपकी शिकायत "${complaint.title}" की स्थिति अब ${HI_STATUS_LABELS[status] || status} है।`
+                : `Your complaint "${complaint.title}" is now ${status.replace('_', ' ')}`,
         });
     } catch (err) {
         console.error('Citizen notification failed:', err.message);
@@ -571,8 +634,10 @@ router.patch('/:id/assign', requireAuth, requireAnyRole(['admin', 'dept_admin'])
                 userId: complaint.user_id,
                 complaintId: complaint.id,
                 type: 'officer_assigned',
-                title: 'Officer assigned',
-                message: `${complaint.assigned_officer_name} has been assigned to your complaint "${complaint.title}"`,
+                title: complaint.source_language === 'hi' ? 'अधिकारी नियुक्त किया गया' : 'Officer assigned',
+                message: complaint.source_language === 'hi'
+                    ? `${complaint.assigned_officer_name} को आपकी शिकायत "${complaint.title}" के लिए नियुक्त किया गया है।`
+                    : `${complaint.assigned_officer_name} has been assigned to your complaint "${complaint.title}"`,
             });
         } catch (err) {
             console.error('Citizen notification failed:', err.message);

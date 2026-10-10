@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 
 const PAGE_SIZE_DEFAULT = 10;
 
@@ -15,6 +16,7 @@ export default function DataTable({
   onSearchChange,
   hideSearch = false,
 }) {
+  const { t } = useLanguage();
   const [internalQuery, setInternalQuery] = useState('');
   const [page, setPage] = useState(1);
   const query = searchValue ?? internalQuery;
@@ -45,7 +47,7 @@ export default function DataTable({
           <input
             value={query}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder={searchPlaceholder}
+            placeholder={t(searchPlaceholder)}
             className="w-full sm:w-80 rounded-md border border-paper-line bg-white px-4 py-2.5 text-sm text-ink placeholder:text-ink-soft focus:outline-none focus:ring-2 focus:ring-civic/30 dark:border-board-line dark:bg-board dark:text-paper"
           />
         </div>
@@ -58,7 +60,7 @@ export default function DataTable({
               <tr>
                 {columns.map((col) => (
                   <th key={col.key} className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider ${col.className || ''}`}>
-                    {col.label}
+                    {t(col.label)}
                   </th>
                 ))}
               </tr>
@@ -69,7 +71,7 @@ export default function DataTable({
                 : (
                   <tr>
                     <td colSpan={colSpan || columns.length} className="px-4 py-10">
-                      {emptyState || <p className="text-center text-ink-soft">No results.</p>}
+                      {emptyState || <p className="text-center text-ink-soft">{t('No results.')}</p>}
                     </td>
                   </tr>
                 )}
@@ -80,7 +82,7 @@ export default function DataTable({
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-paper-line px-4 py-3 text-xs text-ink-soft dark:border-board-line">
             <span>
-              Page {currentPage} of {totalPages} · {filtered.length} result{filtered.length === 1 ? '' : 's'}
+              {t('Page')} {currentPage} {t('of')} {totalPages} · {filtered.length} {t(filtered.length === 1 ? 'result' : 'results')}
             </span>
             <div className="flex gap-2">
               <button
@@ -88,14 +90,14 @@ export default function DataTable({
                 disabled={currentPage === 1}
                 className="rounded-md border border-paper-line px-3 py-1.5 font-medium text-ink hover:bg-paper-warm disabled:opacity-40 dark:border-board-line dark:text-paper dark:hover:bg-board-line"
               >
-                Prev
+                {t('Prev')}
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
                 className="rounded-md border border-paper-line px-3 py-1.5 font-medium text-ink hover:bg-paper-warm disabled:opacity-40 dark:border-board-line dark:text-paper dark:hover:bg-board-line"
               >
-                Next
+                {t('Next')}
               </button>
             </div>
           </div>

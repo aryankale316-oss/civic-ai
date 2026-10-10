@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNotifications } from '../context/NotificationContext';
+import { useLanguage } from '../context/LanguageContext';
 
 function timeAgo(dateStr) {
   const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -14,6 +15,7 @@ function timeAgo(dateStr) {
 }
 
 export default function NotificationBell() {
+  const { t } = useLanguage();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -38,7 +40,7 @@ export default function NotificationBell() {
       <button
         onClick={() => setOpen((o) => !o)}
         className="relative flex h-9 w-9 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-paper-warm dark:hover:bg-board-line"
-        aria-label="Notifications"
+        aria-label={t('Notifications')}
       >
         🔔
         {unreadCount > 0 && (
@@ -58,15 +60,15 @@ export default function NotificationBell() {
             className="absolute right-0 z-50 mt-2 max-h-96 w-80 overflow-y-auto rounded-lg border border-paper-line bg-white shadow-lg dark:border-board-line dark:bg-board sm:w-96"
           >
             <div className="flex items-center justify-between px-3 py-2 border-b border-paper-line dark:border-board-line">
-              <span className="text-sm font-medium text-ink dark:text-paper">Notifications</span>
+              <span className="text-sm font-medium text-ink dark:text-paper">{t('Notifications')}</span>
               {unreadCount > 0 && (
                 <button onClick={markAllRead} className="text-xs text-ink-soft hover:text-ink dark:hover:text-paper">
-                  Mark all read
+                  {t('Mark all read')}
                 </button>
               )}
             </div>
             {notifications.length === 0 ? (
-              <p className="text-sm text-ink-soft text-center py-6">No notifications yet.</p>
+              <p className="text-sm text-ink-soft text-center py-6">{t('No notifications yet.')}</p>
             ) : (
               notifications.map((n) => (
                 <button
@@ -77,8 +79,8 @@ export default function NotificationBell() {
                   }`}
                 >
                   {!n.is_read && <span className="absolute left-1 top-3 h-1.5 w-1.5 rounded-full bg-civic" />}
-                  <p className="text-sm text-ink dark:text-paper pl-2">{n.title}</p>
-                  <p className="text-xs text-ink-soft pl-2">{n.message}</p>
+                  <p className="text-sm text-ink dark:text-paper pl-2">{t(n.title)}</p>
+                  <p className="text-xs text-ink-soft pl-2">{t(n.message)}</p>
                   <p className="text-[10px] font-mono text-ink-soft mt-0.5 pl-2">{timeAgo(n.created_at)}</p>
                 </button>
               ))

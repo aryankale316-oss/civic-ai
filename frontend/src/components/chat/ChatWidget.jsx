@@ -3,8 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import apiClient from '../../api/client';
 import ChatMessage from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function ChatWidget() {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [loadedHistory, setLoadedHistory] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -47,7 +49,7 @@ export default function ChatWidget() {
       const [{ data }] = await Promise.all([apiClient.post('/chatbot/message', { message: text }), typingDelay]);
       setMessages((prev) => [...prev, { role: 'bot', content: data.reply }]);
     } catch {
-      setMessages((prev) => [...prev, { role: 'bot', content: "Sorry, I couldn't process that — please try again." }]);
+      setMessages((prev) => [...prev, { role: 'bot', content: t("Sorry, I couldn't process that — please try again.") }]);
     } finally {
       setSending(false);
     }
@@ -65,8 +67,8 @@ export default function ChatWidget() {
             className="mb-3 flex h-[30rem] w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-xl border border-paper-line bg-white shadow-xl dark:border-board-line dark:bg-board sm:w-96"
           >
             <div className="flex items-center justify-between bg-civic px-4 py-3 text-white">
-              <div><span className="text-sm font-semibold">Civic AI Assistant</span><p className="text-[10px] text-white/75">Automated process support</p></div>
-              <button onClick={() => setOpen(false)} className="text-paper/70 hover:text-paper text-sm" aria-label="Close chat">
+              <div><span className="text-sm font-semibold">{t('Civic AI Assistant')}</span><p className="text-[10px] text-white/75">{t('Automated process support')}</p></div>
+              <button onClick={() => setOpen(false)} className="text-paper/70 hover:text-paper text-sm" aria-label={t('Close chat')}>
                 ✕
               </button>
             </div>
@@ -74,7 +76,7 @@ export default function ChatWidget() {
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
               {messages.length === 0 && !sending && (
                 <p className="text-xs text-ink-soft text-center mt-4">
-                  Ask me to track a complaint, explain departments, or guide you through submitting one.
+                  {t('Ask me to track a complaint, explain departments, or guide you through submitting one.')}
                 </p>
               )}
               {messages.map((m, i) => (
@@ -87,7 +89,7 @@ export default function ChatWidget() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Type a message..."
+                placeholder={t('Type a message...')}
                 className="flex-1 rounded-md border border-paper-line bg-white px-3 py-2 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/15 dark:border-board-line dark:bg-board-line dark:text-paper"
               />
               <button
@@ -95,7 +97,7 @@ export default function ChatWidget() {
                 disabled={sending || !input.trim()}
                 className="rounded-md bg-civic px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-civic-bright disabled:opacity-50"
               >
-                Send
+                {t('Send')}
               </button>
             </form>
           </motion.div>
@@ -107,7 +109,7 @@ export default function ChatWidget() {
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen((o) => !o)}
         className="flex h-14 w-14 items-center justify-center rounded-full bg-civic text-2xl text-white shadow-lg hover:bg-civic-bright"
-        aria-label={open ? 'Close chat assistant' : 'Open chat assistant'}
+        aria-label={open ? t('Close chat assistant') : t('Open chat assistant')}
       >
         {open ? '✕' : '💬'}
       </motion.button>

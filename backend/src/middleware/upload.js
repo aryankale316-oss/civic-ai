@@ -1,8 +1,13 @@
 const crypto = require('crypto');
+const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 
 const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
+
+// Multer's diskStorage does not create a callback-provided destination folder.
+// Ensure it exists before the first image upload, including on a fresh clone.
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;

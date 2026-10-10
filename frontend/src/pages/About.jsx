@@ -1,8 +1,14 @@
 import PublicNav from '../components/PublicNav';
 import PageTransition from '../components/ui/PageTransition';
 import { NoticeCard, MetricRow } from '../components/civic';
+import { useLanguage } from '../context/LanguageContext';
 
 const AI_CAPABILITIES = [
+  {
+    title: 'Hindi text preparation',
+    status: 'Local machine translation',
+    body: 'Devanagari complaints are preserved as submitted and translated locally to English before the existing text-analysis checks. The translation and English-trained models can make mistakes, so AI results need staff review.',
+  },
   {
     title: 'Category & department classification',
     status: 'Trained ML model',
@@ -61,18 +67,17 @@ const AI_CAPABILITIES = [
 ];
 
 export default function About() {
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen bg-paper dark:bg-board">
       <PublicNav />
 
       <PageTransition className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:py-16">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">Transparency report</p>
-        <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-4">What Civic AI is</h1>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">{t('Transparency report')}</p>
+        <h1 className="text-3xl font-display font-semibold text-ink dark:text-paper mb-4">{t('What Civic AI is')}</h1>
         <p className="text-ink-soft leading-relaxed mb-6">
-          Civic AI is a vertical slice of a civic grievance-redressal platform: a citizen submits a complaint, a set
-          of machine-learning and rule-based models classify and triage it, and an admin dashboard lets department
-          staff track it through to resolution. It's built to show the shape of a full system — real classification,
-          real duplicate detection, real clustering — without pretending every AI feature is production-grade yet.
+          {t('Civic AI is a vertical slice of a civic grievance-redressal platform: a citizen submits a complaint, a set')}{' '}
+          {t('of machine-learning and rule-based models classify and triage it, and an admin dashboard lets department staff track it through to resolution. It demonstrates a full system without claiming every AI feature is production-grade.')}
         </p>
 
         <MetricRow
@@ -84,31 +89,30 @@ export default function About() {
           ]}
         />
 
-        <h2 className="text-lg font-display font-semibold text-ink dark:text-paper mb-1">AI capabilities, honestly labeled</h2>
+        <h2 className="text-lg font-display font-semibold text-ink dark:text-paper mb-1">{t('AI capabilities, honestly labeled')}</h2>
         <p className="text-sm text-ink-soft mb-6">
-          Each feature below is tagged with what actually powers it — a trained model, a rule-based heuristic, or a
-          pretrained third-party model — so it's clear what to trust and what to treat as a rough signal.
+          {t('Each feature below is tagged with what actually powers it: a trained model, a rule-based heuristic, or a pretrained third-party model, so it is clear what to trust and what to treat as a rough signal.')}
         </p>
 
         <div className="space-y-3 mb-10">
           {AI_CAPABILITIES.map((c) => (
             <NoticeCard key={c.title} pin={false}>
               <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
-                <h3 className="text-sm font-medium text-ink dark:text-paper">{c.title}</h3>
+                <h3 className="text-sm font-medium text-ink dark:text-paper">{t(c.title)}</h3>
                 <span className="px-2 py-0.5 bg-paper-warm dark:bg-board-line text-ink-soft text-[10px] font-mono uppercase tracking-wide">
-                  {c.status}
+                  {t(c.status)}
                 </span>
               </div>
-              <p className="text-xs text-ink-soft leading-relaxed">{c.body}</p>
+              <p className="text-xs text-ink-soft leading-relaxed">{t(c.body)}</p>
             </NoticeCard>
           ))}
         </div>
 
-        <h2 className="text-lg font-display font-semibold text-ink dark:text-paper mb-2">Tech stack</h2>
+        <h2 className="text-lg font-display font-semibold text-ink dark:text-paper mb-2">{t('Tech stack')}</h2>
         <ul className="text-sm text-ink-soft space-y-1 mb-2 list-disc list-inside">
-          <li>Backend API — Node/Express + PostgreSQL + JWT auth</li>
-          <li>AI service — Python/FastAPI + scikit-learn + sentence-transformers + YOLOv8 (Ultralytics) + OpenCV</li>
-          <li>Frontend — React + Vite + Tailwind CSS</li>
+          <li>{t('Backend API — Node/Express + PostgreSQL + JWT auth')}</li>
+          <li>{t('AI service — Python/FastAPI + scikit-learn + sentence-transformers + YOLOv8 (Ultralytics) + OpenCV')}</li>
+          <li>{t('Frontend — React + Vite + Tailwind CSS')}</li>
         </ul>
       </PageTransition>
     </div>

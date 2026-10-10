@@ -9,8 +9,10 @@ import SingleSeriesBarChart from '../components/charts/SingleSeriesBarChart';
 import SentimentTrendChart from '../components/charts/SentimentTrendChart';
 import PageTransition from '../components/ui/PageTransition';
 import { SkeletonCard } from '../components/ui/Skeleton';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function AdminInsights() {
+  const { t } = useLanguage();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
@@ -25,11 +27,11 @@ export default function AdminInsights() {
     <AdminShell>
       <PageTransition className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-civic dark:text-seal-green">
-          Decision support
+          {t('Decision support')}
         </p>
 
         <h1 className="mb-6 text-3xl font-display font-semibold text-ink dark:text-paper">
-          AI Insights
+          {t('AI Insights')}
         </h1>
 
         {error && (
@@ -50,7 +52,7 @@ export default function AdminInsights() {
               className="mb-6 sm:grid-cols-4"
               metrics={[
                 {
-                  label: 'Avg. classification confidence',
+                  label: t('Avg. classification confidence'),
                   value:
                     data.classification_confidence.overall != null
                       ? `${Math.round(
@@ -60,7 +62,7 @@ export default function AdminInsights() {
                   note: data.classification_confidence.note,
                 },
                 {
-                  label: 'Complaint growth (MoM)',
+                  label: t('Complaint growth (MoM)'),
                   value:
                     data.complaint_growth.growth_pct != null
                       ? `${
@@ -71,13 +73,13 @@ export default function AdminInsights() {
                       : '—',
                   note:
                     data.complaint_growth.growth_pct == null
-                      ? 'Not enough months of data yet'
+                      ? t('Not enough months of data yet')
                       : `${
                           data.complaint_growth.current_month?.count ?? 0
                         } this month`,
                 },
                 {
-                  label: `Forecast${
+                  label: `${t('Forecast')}${
                     data.monthly_forecast.month
                       ? ` (${data.monthly_forecast.month})`
                       : ''
@@ -89,7 +91,7 @@ export default function AdminInsights() {
                   note: data.monthly_forecast.note,
                 },
                 {
-                  label: 'Flagged complaints',
+                  label: t('Flagged complaints'),
                   value: (
                     data.moderation_summary.profane_count +
                     data.moderation_summary.spam_count +
@@ -104,8 +106,8 @@ export default function AdminInsights() {
             <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
               <ChartCard
                 index={4}
-                title="Sentiment trends"
-                subtitle="Last 12 months"
+                  title={t('Sentiment trends')}
+                subtitle={t('Last 12 months')}
               >
                 <SentimentTrendChart
                   data={data.sentiment_trends.map((r) => ({
@@ -117,8 +119,8 @@ export default function AdminInsights() {
 
               <ChartCard
                 index={5}
-                title="Department workload"
-                subtitle="Pending + in-progress complaints"
+                title={t('Department workload')}
+                subtitle={t('Pending + in-progress complaints')}
               >
                 <SingleSeriesBarChart
                   data={data.department_workload}
@@ -130,8 +132,8 @@ export default function AdminInsights() {
 
               <ChartCard
                 index={6}
-                title="Common complaint keywords"
-                subtitle="Most frequent words across recent complaints"
+                title={t('Common complaint keywords')}
+                subtitle={t('Most frequent words across recent complaints')}
               >
                 <SingleSeriesBarChart
                   data={data.common_keywords}
@@ -143,7 +145,7 @@ export default function AdminInsights() {
 
               <ChartCard
                 index={7}
-                title="Classification confidence by category"
+                title={t('Classification confidence by category')}
               >
                 <SingleSeriesBarChart
                   data={data.classification_confidence.by_category.map(
@@ -167,12 +169,12 @@ export default function AdminInsights() {
                 style={{ animationDelay: '480ms' }}
               >
                 <h2 className="mb-2 text-sm font-medium text-ink dark:text-paper">
-                  Recommendations
+                  {t('Recommendations')}
                 </h2>
 
                 <ul className="list-disc space-y-2 pl-4 text-sm text-ink-soft">
                   {data.recommendations.map((rec, i) => (
-                    <li key={i}>{rec}</li>
+                    <li key={i}>{t(rec)}</li>
                   ))}
                 </ul>
               </NoticeCard>

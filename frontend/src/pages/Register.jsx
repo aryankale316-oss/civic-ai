@@ -4,11 +4,13 @@ import apiClient from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import AuthLayout from '../components/AuthLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const INPUT_CLASS =
   'w-full rounded-md border border-paper-line bg-white px-4 py-3 text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/15 dark:border-board-line dark:bg-board-line dark:text-paper';
 
 export default function Register() {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,10 +43,10 @@ export default function Register() {
       <form onSubmit={handleSubmit}>
         {error && <p className="mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-stamp-red">{error}</p>}
 
-        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">Full name</label>
-        <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className={`${INPUT_CLASS} mb-5`} />
+        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">{t('Full name')}</label>
+        <input required value={name} onChange={(e) => setName(e.target.value)} placeholder={t('Your full name')} className={`${INPUT_CLASS} mb-5`} />
 
-        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">Email address</label>
+        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">{t('Email address')}</label>
         <input
           type="email"
           required
@@ -54,14 +56,14 @@ export default function Register() {
           className={`${INPUT_CLASS} mb-5`}
         />
 
-        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">Password</label>
+        <label className="mb-2 block text-sm font-semibold text-ink dark:text-paper">{t('Password')}</label>
         <input
           type="password"
           required
           minLength={6}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Minimum 6 characters"
+          placeholder={t('Minimum 6 characters')}
           className={`${INPUT_CLASS} mb-6`}
         />
 
@@ -70,11 +72,11 @@ export default function Register() {
           disabled={loading}
           className="w-full rounded-md bg-civic py-3 font-semibold text-white transition-colors hover:bg-civic-bright disabled:opacity-50"
         >
-          {loading ? 'Creating account...' : 'Register'}
+          {loading ? t('Creating account...') : t('Register')}
         </button>
 
         <p className="mt-6 border-t border-paper-line pt-6 text-center text-sm text-ink-soft dark:border-board-line">
-          Already have an account? <Link to="/login" className="font-semibold text-civic hover:underline dark:text-seal-green">Log in</Link>
+          {t('Already have an account?')} <Link to="/login" className="font-semibold text-civic hover:underline dark:text-seal-green">{t('Log in')}</Link>
         </p>
       </form>
     </AuthLayout>

@@ -1,4 +1,5 @@
 import { StatusFlap } from './civic';
+import { useLanguage } from '../context/LanguageContext';
 
 const PRIORITY_TONES = {
   Low: 'ink-soft',
@@ -28,15 +29,18 @@ const SENTIMENT_TONES = {
 };
 
 export function PriorityBadge({ priority }) {
+  const { t } = useLanguage();
   if (!priority) return null;
-  return <StatusFlap label={priority} tone={PRIORITY_TONES[priority] || 'ink-soft'} />;
+  return <StatusFlap label={t(priority)} tone={PRIORITY_TONES[priority] || 'ink-soft'} />;
 }
 
 export function StatusBadge({ status }) {
-  return <StatusFlap label={STATUS_LABELS[status] || status} tone={STATUS_TONES[status] || 'ink-soft'} />;
+  const { t } = useLanguage();
+  return <StatusFlap label={t(STATUS_LABELS[status] || status)} tone={STATUS_TONES[status] || 'ink-soft'} />;
 }
 
 export function SentimentBadge({ sentiment }) {
+  const { t } = useLanguage();
   if (!sentiment) return null;
-  return <StatusFlap label={sentiment} tone={SENTIMENT_TONES[sentiment] || 'ink-soft'} />;
+  return <StatusFlap label={t(sentiment)} tone={SENTIMENT_TONES[sentiment] || 'ink-soft'} />;
 }

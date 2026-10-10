@@ -1,0 +1,173 @@
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+
+const STORAGE_KEY = 'civic-ai-language';
+
+const translations = {
+  hi: {
+    Home: 'होम', About: 'परिचय', 'Log in': 'लॉग इन', Register: 'पंजीकरण',
+    'Dashboard': 'डैशबोर्ड', Analytics: 'विश्लेषण', Hotspots: 'हॉटस्पॉट', Officers: 'अधिकारी', Departments: 'विभाग', Reports: 'रिपोर्ट', Insights: 'जानकारी',
+    'New Complaint': 'नई शिकायत', Report: 'शिकायत दर्ज करें', Profile: 'प्रोफ़ाइल', 'Profile & settings': 'प्रोफ़ाइल और सेटिंग्स', 'Log out': 'लॉग आउट',
+    'Welcome back': 'वापसी पर स्वागत है', 'Securely access your civic portal to file grievances and view progress.': 'शिकायत दर्ज करने और उसकी प्रगति देखने के लिए अपने नागरिक पोर्टल में सुरक्षित रूप से प्रवेश करें।',
+    'Create your account': 'अपना खाता बनाएँ', 'Join Civic AI to report, follow, and resolve issues in your community.': 'अपने समुदाय की समस्याएँ दर्ज करने, उनकी स्थिति देखने और समाधान पाने के लिए Civic AI से जुड़ें।',
+    'Email address': 'ईमेल पता', Password: 'पासवर्ड', 'Full name': 'पूरा नाम', 'Your full name': 'आपका पूरा नाम', 'Enter your password': 'अपना पासवर्ड दर्ज करें', 'Minimum 6 characters': 'कम से कम 6 अक्षर',
+    'Logging in...': 'लॉग इन हो रहा है...', 'Creating account...': 'खाता बनाया जा रहा है...', 'No account?': 'खाता नहीं है?', 'Create account': 'खाता बनाएँ', 'Already have an account?': 'पहले से खाता है?', 'Authorized staff login': 'अधिकृत कर्मचारी लॉग इन',
+    'Citizen dashboard': 'नागरिक डैशबोर्ड', 'My complaints': 'मेरी शिकायतें', 'Track every report from submission through resolution.': 'शिकायत दर्ज होने से समाधान तक उसकी स्थिति देखें।', 'New complaint': 'नई शिकायत',
+    'Total reports': 'कुल रिपोर्ट', Pending: 'लंबित', 'In progress': 'कार्य प्रगति पर', Resolved: 'समाधान हुआ', Total: 'कुल', Submitted: 'दर्ज',
+    'Failed to load complaints': 'शिकायतें लोड नहीं हो सकीं', 'No complaints yet': 'अभी तक कोई शिकायत नहीं', 'Submit your first complaint and we\'ll classify, route, and track it for you.': 'अपनी पहली शिकायत दर्ज करें; हम उसे वर्गीकृत करके संबंधित विभाग तक पहुँचाएँगे और उसकी स्थिति दिखाएँगे।', 'Submit a complaint': 'शिकायत दर्ज करें',
+    'REPORT AN ISSUE': 'समस्या दर्ज करें', 'Help make your city better.': 'अपने शहर को बेहतर बनाने में मदद करें।', Describe: 'विवरण', Location: 'स्थान', Photos: 'तस्वीरें', 'AI review': 'AI जाँच', Submit: 'जमा करें',
+    'Describe the issue': 'समस्या का विवरण दें', 'Choose a category to guide your report. AI will make the final routing suggestion.': 'अपनी शिकायत के लिए एक श्रेणी चुनें। AI विभाग के लिए सुझाव देगा।', Roads: 'सड़कें', 'Water Supply': 'जल आपूर्ति', Electricity: 'बिजली', Garbage: 'कचरा', Drainage: 'जल निकासी', Health: 'स्वास्थ्य', Transport: 'परिवहन', 'Public Safety': 'सार्वजनिक सुरक्षा',
+    'Short title': 'संक्षिप्त शीर्षक', 'Example: Large pothole near the bus stop': 'उदाहरण: बस स्टॉप के पास बड़ा गड्ढा', 'What happened?': 'क्या हुआ?', 'Speak description': 'बोलकर विवरण दें', 'Listening… tap to stop': 'सुन रहे हैं… रोकने के लिए दबाएँ',
+    'Include useful details, such as severity and landmarks.': 'समस्या की गंभीरता और आसपास के पहचान-स्थलों जैसी जानकारी दें।', 'Add the location': 'स्थान जोड़ें', 'Search or place a pin so the right team can find the issue.': 'सही टीम तक पहुँचाने के लिए स्थान खोजें या मानचित्र पर पिन लगाएँ।', 'Street, landmark, or ward': 'सड़क, पहचान-स्थल या वार्ड',
+    'Add photos': 'तस्वीरें जोड़ें', 'Photos help staff understand the issue. They are optional.': 'तस्वीरों से कर्मचारियों को समस्या समझने में मदद मिलती है। तस्वीरें वैकल्पिक हैं।', 'Photos are optional': 'तस्वीरें वैकल्पिक हैं', 'Drag photos here or click to browse': 'तस्वीरें यहाँ खींचें या चुनने के लिए क्लिक करें',
+    'AI review': 'AI जाँच', 'We check for similar reports before you submit. Category and priority are calculated after the report is received.': 'जमा करने से पहले हम मिलती-जुलती शिकायतें देखते हैं। शिकायत मिलने के बाद श्रेणी और प्राथमिकता तय की जाएगी।', 'Checking reports…': 'शिकायतें जाँची जा रही हैं…', 'Check similar reports': 'मिलती-जुलती शिकायतें जाँचें', 'Possible similar reports': 'मिलती-जुलती शिकायतें हो सकती हैं',
+    'Review and submit': 'जाँचें और जमा करें', Title: 'शीर्षक', Category: 'श्रेणी', 'Not selected': 'चयन नहीं किया', Location: 'स्थान', Description: 'विवरण', 'AI classification, priority, and any image analysis are suggestions for staff review, not confirmed facts.': 'AI वर्गीकरण, प्राथमिकता और तस्वीर का विश्लेषण कर्मचारियों के लिए सुझाव हैं, पुष्टि किए गए तथ्य नहीं।',
+    Back: 'वापस', Cancel: 'रद्द करें', Continue: 'आगे बढ़ें', 'Submitting…': 'जमा हो रहा है…', 'Submit report': 'रिपोर्ट जमा करें', 'Add a title and description to continue.': 'आगे बढ़ने के लिए शीर्षक और विवरण जोड़ें।', 'Choose or enter a location to continue.': 'आगे बढ़ने के लिए स्थान चुनें या दर्ज करें।', 'Duplicate check could not run. You can still submit your report.': 'दोहराव की जाँच नहीं हो सकी। फिर भी आप रिपोर्ट जमा कर सकते हैं।',
+    'Report received': 'रिपोर्ट प्राप्त हुई', 'Thank you for speaking up.': 'समस्या बताने के लिए धन्यवाद।', 'Your complaint ID is': 'आपकी शिकायत ID है', 'Track complaint': 'शिकायत ट्रैक करें', 'Uploading photos…': 'तस्वीरें अपलोड हो रही हैं…', 'Retry photo upload': 'तस्वीरें फिर अपलोड करें', Dashboard: 'डैशबोर्ड', 'Report submitted successfully': 'रिपोर्ट सफलतापूर्वक जमा हुई',
+    'Use my location': 'मेरा स्थान उपयोग करें', 'Locating…': 'स्थान खोजा जा रहा है…', 'Looking up address…': 'पता खोजा जा रहा है…', 'Click the map (or use your location) to pin the exact spot': 'सटीक स्थान पिन करने के लिए मानचित्र पर क्लिक करें या अपना स्थान उपयोग करें',
+    Account: 'खाता', 'Profile & settings': 'प्रोफ़ाइल और सेटिंग्स', 'Personal details': 'व्यक्तिगत विवरण', Name: 'नाम', Email: 'ईमेल', 'Account type:': 'खाते का प्रकार:', 'Save profile': 'प्रोफ़ाइल सहेजें', 'Saving…': 'सहेजा जा रहा है…', 'Change password': 'पासवर्ड बदलें', 'Current password': 'वर्तमान पासवर्ड', 'New password (at least 8 characters)': 'नया पासवर्ड (कम से कम 8 अक्षर)', 'Confirm new password': 'नए पासवर्ड की पुष्टि करें', 'Update password': 'पासवर्ड अपडेट करें', 'Updating…': 'अपडेट हो रहा है…',
+    English: 'अंग्रेज़ी', Hindi: 'हिन्दी', Language: 'भाषा',
+  },
+};
+
+const additionalTranslations = {
+  'Admin Portal': { hi: 'प्रशासन पोर्टल' }, 'Civic Governance': { hi: 'नागरिक शासन' }, 'Ticket Queue': { hi: 'शिकायत सूची' }, 'Department Analytics': { hi: 'विभागीय विश्लेषण' }, 'AI Insights': { hi: 'AI अंतर्दृष्टि' },
+  'Field operations': { hi: 'मैदानी संचालन' }, 'Officer directory': { hi: 'अधिकारी सूची' }, Phone: { hi: 'फ़ोन' }, 'Adding...': { hi: 'जोड़ा जा रहा है...' }, 'Add Officer': { hi: 'अधिकारी जोड़ें' }, 'Search officers...': { hi: 'अधिकारी खोजें...' }, active: { hi: 'सक्रिय' }, inactive: { hi: 'निष्क्रिय' },
+  Operations: { hi: 'संचालन' }, Overview: { hi: 'अवलोकन' }, 'City map': { hi: 'शहर का मानचित्र' }, 'City operations': { hi: 'शहर संचालन' }, 'Live civic intelligence': { hi: 'नागरिक सेवाओं की लाइव जानकारी' }, 'for better city care.': { hi: 'बेहतर शहर सेवा के लिए।' },
+  'Refresh queue': { hi: 'सूची रीफ़्रेश करें' }, 'All statuses': { hi: 'सभी स्थितियाँ' }, 'All departments': { hi: 'सभी विभाग' }, 'Flagged only': { hi: 'केवल चिह्नित' }, 'Search grievances or citizens...': { hi: 'शिकायतें या नागरिक खोजें...' },
+  submitted: { hi: 'प्राप्त' }, 'in progress': { hi: 'कार्य प्रगति पर' }, resolved: { hi: 'समाधान हुआ' }, rejected: { hi: 'अस्वीकृत' }, 'No results.': { hi: 'कोई परिणाम नहीं।' }, Page: { hi: 'पृष्ठ' }, of: { hi: '/' }, result: { hi: 'परिणाम' }, results: { hi: 'परिणाम' }, Prev: { hi: 'पिछला' }, Next: { hi: 'अगला' },
+  Title: { hi: 'शीर्षक' }, Citizen: { hi: 'नागरिक' }, Priority: { hi: 'प्राथमिकता' }, Sentiment: { hi: 'भावना' }, 'Est. Resolution': { hi: 'अनुमानित समाधान' }, Officer: { hi: 'अधिकारी' }, Flags: { hi: 'चेतावनियाँ' }, Submitted: { hi: 'जमा किया गया' }, 'Active Workload': { hi: 'सक्रिय कार्यभार' }, 'Total Assigned': { hi: 'कुल सौंपे गए' }, Performance: { hi: 'प्रदर्शन' }, Actions: { hi: 'कार्रवाइयाँ' }, 'Not yet rated': { hi: 'अभी तक रेटिंग नहीं' },
+  'Notifications': { hi: 'सूचनाएँ' }, 'Mark all read': { hi: 'सभी को पढ़ा हुआ चिह्नित करें' }, 'No notifications yet.': { hi: 'अभी कोई सूचना नहीं है।' }, Dismiss: { hi: 'बंद करें' },
+  Search: { hi: 'खोजें' }, Status: { hi: 'स्थिति' }, Department: { hi: 'विभाग' }, Category: { hi: 'श्रेणी' }, 'Search...': { hi: 'खोजें...' }, 'Search grievances...': { hi: 'शिकायतें खोजें...' },
+  'Reports & analytics': { hi: 'रिपोर्ट और विश्लेषण' }, 'Complaint Report': { hi: 'शिकायत रिपोर्ट' }, 'Department Report': { hi: 'विभाग रिपोर्ट' }, 'Monthly Report': { hi: 'मासिक रिपोर्ट' }, 'Analytics Report': { hi: 'विश्लेषण रिपोर्ट' }, 'Report downloaded': { hi: 'रिपोर्ट डाउनलोड हुई' }, 'Records office': { hi: 'रिकॉर्ड कार्यालय' }, 'Generate operational records in CSV, Excel, or PDF using current platform data.': { hi: 'मौजूदा प्लेटफ़ॉर्म डेटा से CSV, Excel या PDF में संचालन रिपोर्ट बनाएँ।' },
+  'Civic AI Assistant': { hi: 'Civic AI सहायक' }, 'Automated process support': { hi: 'प्रक्रिया संबंधी स्वचालित सहायता' }, 'Close chat': { hi: 'चैट बंद करें' }, 'Ask me to track a complaint, explain departments, or guide you through submitting one.': { hi: 'शिकायत की स्थिति पूछें, विभागों की जानकारी लें या शिकायत दर्ज करने में सहायता पाएँ।' }, 'Type a message...': { hi: 'संदेश लिखें...' }, Send: { hi: 'भेजें' }, 'Close chat assistant': { hi: 'चैट सहायक बंद करें' }, 'Open chat assistant': { hi: 'चैट सहायक खोलें' }, "Sorry, I couldn't process that — please try again.": { hi: 'क्षमा करें, मैं इसे समझ नहीं पाया। कृपया फिर प्रयास करें।' },
+  'How it works': { hi: 'यह कैसे काम करता है' }, Submit: { hi: 'जमा करें' }, 'AI Triage': { hi: 'AI छँटाई' }, 'Officer Action': { hi: 'अधिकारी की कार्रवाई' }, Feedback: { hi: 'प्रतिक्रिया' }, 'Ready to report something?': { hi: 'क्या आप कोई समस्या दर्ज करना चाहते हैं?' }, 'Registration takes under a minute — no department knowledge required.': { hi: 'पंजीकरण में एक मिनट से कम समय लगता है; विभाग की जानकारी होना ज़रूरी नहीं है।' }, 'Get Started': { hi: 'शुरू करें' }, 'About this project': { hi: 'इस परियोजना के बारे में' },
+  'Every complaint is auto-sorted into a category and routed to the right department.': { hi: 'हर शिकायत को स्वचालित रूप से श्रेणी में बाँटकर सही विभाग तक भेजा जाता है।' }, 'Keyword and category signals flag Critical/High-priority issues for faster response.': { hi: 'मुख्य शब्द और श्रेणी संकेत अत्यावश्यक या उच्च प्राथमिकता वाले मामलों को तेज़ कार्रवाई के लिए चिह्नित करते हैं।' }, "Sentence-embedding similarity groups near-identical reports so the same issue isn't worked twice.": { hi: 'वाक्य एम्बेडिंग से मिलती-जुलती शिकायतें समूहित होती हैं ताकि एक ही समस्या पर दो बार काम न हो।' }, 'Geo-clustering surfaces neighborhoods with recurring problems on an admin map.': { hi: 'भौगोलिक क्लस्टरिंग से बार-बार समस्या वाले इलाके प्रशासनिक मानचित्र पर दिखते हैं।' }, "Speak your complaint instead of typing it, using your browser's built-in speech recognition.": { hi: 'ब्राउज़र की वाक् पहचान सुविधा से टाइप करने के बजाय अपनी शिकायत बोलें।' }, 'Heuristic checks flag promotional junk, gibberish text, and resubmitted complaints for admin review.': { hi: 'अनुमान-आधारित जाँच विज्ञापन स्पैम, अस्पष्ट पाठ और दोबारा दर्ज शिकायतों को प्रशासनिक समीक्षा के लिए चिह्नित करती है।' }, 'Uploaded photos are scanned with an object-detection model plus heuristic pothole/garbage/water-logging candidates.': { hi: 'अपलोड की गई तस्वीरों में वस्तु पहचान मॉडल और गड्ढे, कचरे तथा जलभराव के अनुमानित संकेत जाँचे जाते हैं।' }, 'A trained regression model gives citizens a realistic time-to-resolution estimate.': { hi: 'प्रशिक्षित प्रतिगमन मॉडल नागरिकों को अनुमानित समाधान समय बताता है।' }, 'A rule-based assistant answers status and process questions right in the dashboard.': { hi: 'नियम-आधारित सहायक डैशबोर्ड में शिकायत की स्थिति और प्रक्रिया से जुड़े प्रश्नों के उत्तर देता है।' }, 'Describe the issue — by typing or speaking — and optionally attach a photo and location.': { hi: 'समस्या टाइप करके या बोलकर बताएँ; चाहें तो तस्वीर और स्थान भी जोड़ें।' }, 'The system classifies, prioritizes, and routes it to the right department automatically.': { hi: 'सिस्टम शिकायत का वर्गीकरण और प्राथमिकता तय करके उसे सही विभाग तक भेजता है।' }, 'Admins assign a field officer and track the complaint through to resolution.': { hi: 'प्रशासक क्षेत्रीय अधिकारी नियुक्त करते हैं और समाधान तक शिकायत की स्थिति देखते हैं।' }, 'Once resolved, citizens rate the outcome — closing the loop.': { hi: 'समाधान के बाद नागरिक परिणाम की रेटिंग देते हैं, जिससे प्रक्रिया पूरी होती है।' },
+  'Page not found': { hi: 'पृष्ठ नहीं मिला' }, "The page you're looking for doesn't exist or has moved.": { hi: 'आप जिस पृष्ठ को खोज रहे हैं वह मौजूद नहीं है या स्थानांतरित हो गया है।' }, 'Go home': { hi: 'मुखपृष्ठ पर जाएँ' },
+  'Backend API — Node/Express + PostgreSQL + JWT auth': { hi: 'बैकएंड API — Node/Express + PostgreSQL + JWT प्रमाणीकरण' }, 'AI service — Python/FastAPI + scikit-learn + sentence-transformers + YOLOv8 (Ultralytics) + OpenCV': { hi: 'AI सेवा — Python/FastAPI + scikit-learn + sentence-transformers + YOLOv8 (Ultralytics) + OpenCV' }, 'Frontend — React + Vite + Tailwind CSS': { hi: 'फ्रंटएंड — React + Vite + Tailwind CSS' },
+  'Complaint submitted': { hi: 'शिकायत दर्ज की गई' }, 'Complaint status updated': { hi: 'शिकायत की स्थिति अपडेट हुई' }, 'Officer assigned': { hi: 'अधिकारी नियुक्त किया गया' },
+  'Decision support': { hi: 'निर्णय सहायता' }, 'Avg. classification confidence': { hi: 'औसत वर्गीकरण विश्वास' }, 'Complaint growth (MoM)': { hi: 'शिकायत वृद्धि (माह-दर-माह)' }, 'Flagged complaints': { hi: 'चिह्नित शिकायतें' }, 'Sentiment trends': { hi: 'भावना रुझान' }, 'Last 12 months': { hi: 'पिछले 12 महीने' }, 'Department workload': { hi: 'विभागीय कार्यभार' }, 'Pending + in-progress complaints': { hi: 'लंबित और प्रगति पर शिकायतें' }, 'Common complaint keywords': { hi: 'शिकायतों के सामान्य शब्द' }, 'Most frequent words across recent complaints': { hi: 'हाल की शिकायतों में सबसे अधिक आने वाले शब्द' }, 'Classification confidence by category': { hi: 'श्रेणी के अनुसार वर्गीकरण विश्वास' }, Recommendations: { hi: 'सुझाव' }, Forecast: { hi: 'पूर्वानुमान' }, 'Not enough months of data yet': { hi: 'अभी पर्याप्त महीनों का डेटा नहीं है' }, 'this month': { hi: 'इस महीने' },
+  Administration: { hi: 'प्रशासन' }, Departments: { hi: 'विभाग' }, 'New department name': { hi: 'नए विभाग का नाम' }, 'Add department': { hi: 'विभाग जोड़ें' }, 'Department created': { hi: 'विभाग बनाया गया' }, 'Department updated': { hi: 'विभाग अपडेट किया गया' }, 'Department deleted': { hi: 'विभाग हटाया गया' }, Save: { hi: 'सहेजें' }, Cancel: { hi: 'रद्द करें' }, Edit: { hi: 'संपादित करें' }, Delete: { hi: 'हटाएँ' },
+  'Hindi complaint translated locally to English for AI analysis. Review the original text before acting on AI suggestions.': { hi: 'AI विश्लेषण के लिए हिन्दी शिकायत का स्थानीय रूप से अंग्रेज़ी में अनुवाद किया गया। AI सुझावों पर कार्रवाई से पहले मूल शिकायत की समीक्षा करें।' },
+  'Hindi translation was unavailable for this complaint; AI text results may be unreliable.': { hi: 'इस शिकायत का हिन्दी अनुवाद उपलब्ध नहीं था; AI पाठ परिणाम अविश्वसनीय हो सकते हैं।' },
+  'Experimental Hindi-to-English translation was used. AI text predictions are unvalidated; staff must review the original complaint before acting.': { hi: 'प्रयोगात्मक हिन्दी-अंग्रेज़ी अनुवाद का उपयोग हुआ। AI पाठ अनुमान प्रमाणित नहीं हैं; कार्रवाई से पहले कर्मचारी मूल शिकायत की समीक्षा करें।' },
+  'Hindi complaint — manual routing': { hi: 'हिन्दी शिकायत — विभाग मैन्युअल रूप से तय करें' },
+  'Unverified Hindi AI priority': { hi: 'हिन्दी AI प्राथमिकता अप्रमाणित है' },
+  'Hindi AI results are experimental': { hi: 'हिन्दी AI परिणाम प्रयोगात्मक हैं' },
+  'Not analyzed for Hindi': { hi: 'हिन्दी के लिए विश्लेषण नहीं किया गया' },
+  'Not estimated for Hindi': { hi: 'हिन्दी के लिए अनुमान उपलब्ध नहीं' },
+  'Verify the category and priority against the original Hindi complaint before taking action. Priority may be a fallback, not a validated Hindi prediction. Sentiment and resolution time are not generated for Hindi complaints.': { hi: 'कार्रवाई से पहले मूल हिन्दी शिकायत से श्रेणी और प्राथमिकता की जाँच करें। प्राथमिकता डिफ़ॉल्ट मान हो सकती है, हिन्दी के लिए सत्यापित AI अनुमान नहीं। हिन्दी शिकायतों के लिए भावना और समाधान समय का अनुमान नहीं बनाया जाता।' },
+  'No data yet.': { hi: 'अभी डेटा उपलब्ध नहीं है।' }, 'Performance overview': { hi: 'प्रदर्शन अवलोकन' }, 'Complaint hotspots': { hi: 'शिकायत हॉटस्पॉट' }, 'Field intelligence': { hi: 'मैदानी जानकारी' },
+  'Total complaints': { hi: 'कुल शिकायतें' }, 'Resolution rate': { hi: 'समाधान दर' }, 'Avg. resolution time': { hi: 'औसत समाधान समय' }, 'Pending complaints': { hi: 'लंबित शिकायतें' }, 'Complaints by department': { hi: 'विभाग के अनुसार शिकायतें' }, 'Complaints by category': { hi: 'श्रेणी के अनुसार शिकायतें' }, 'Monthly complaint volume': { hi: 'मासिक शिकायत संख्या' },
+  'Complaint volume, resolution counts, and average resolution time per department.': { hi: 'हर विभाग की शिकायत संख्या, समाधान की संख्या और औसत समाधान समय।' }, 'Complaint volume and resolution counts for the last 12 months.': { hi: 'पिछले 12 महीनों की शिकायत संख्या और समाधानों की संख्या।' }, 'Full list of complaints with citizen, department, priority, status, and sentiment.': { hi: 'नागरिक, विभाग, प्राथमिकता, स्थिति और भावना सहित शिकायतों की पूरी सूची।' }, 'Summary KPIs plus top departments and categories.': { hi: 'मुख्य प्रदर्शन आँकड़े और प्रमुख विभाग तथा श्रेणियाँ।' },
+  'No complaints with a pinned location yet': { hi: 'अभी तक किसी शिकायत का स्थान मानचित्र पर नहीं जोड़ा गया है' }, 'Your complaint is now resolved': { hi: 'आपकी शिकायत का समाधान हो गया है' }, 'Profile saved': { hi: 'प्रोफ़ाइल सहेजी गई' }, 'Password updated': { hi: 'पासवर्ड अपडेट किया गया' }, 'No data available': { hi: 'डेटा उपलब्ध नहीं है' },
+  'Transparency report': { hi: 'पारदर्शिता रिपोर्ट' }, 'What Civic AI is': { hi: 'Civic AI क्या है' }, 'AI capabilities, honestly labeled': { hi: 'AI क्षमताएँ और उनकी वास्तविक स्थिति' }, 'Tech stack': { hi: 'तकनीकी ढाँचा' },
+  'Civic AI is a vertical slice of a civic grievance-redressal platform: a citizen submits a complaint, a set': { hi: 'Civic AI नागरिक शिकायत समाधान प्लेटफ़ॉर्म का एक कार्यशील नमूना है: नागरिक शिकायत दर्ज करता है और' },
+  'of machine-learning and rule-based models classify and triage it, and an admin dashboard lets department staff track it through to resolution. It demonstrates a full system without claiming every AI feature is production-grade.': { hi: 'मशीन लर्निंग और नियम-आधारित मॉडल उसका वर्गीकरण और प्राथमिकता तय करते हैं। प्रशासनिक डैशबोर्ड विभागों को समाधान तक शिकायत की स्थिति देखने देता है। यह पूरे सिस्टम का नमूना है; सभी AI सुविधाओं को उत्पादन-स्तर का नहीं माना गया है।' },
+  'Each feature below is tagged with what actually powers it: a trained model, a rule-based heuristic, or a pretrained third-party model, so it is clear what to trust and what to treat as a rough signal.': { hi: 'हर सुविधा के साथ बताया गया है कि वह प्रशिक्षित मॉडल, नियम-आधारित अनुमान या पहले से प्रशिक्षित बाहरी मॉडल पर आधारित है, ताकि परिणामों की सीमाएँ स्पष्ट रहें।' },
+  'Category & department classification': { hi: 'श्रेणी और विभाग वर्गीकरण' }, 'Trained ML model': { hi: 'प्रशिक्षित ML मॉडल' }, 'A scikit-learn text classifier trained on seed complaint data sorts each submission into one of 8 categories (Roads, Water Supply, Electricity, Garbage, Drainage, Health, Transport, Public Safety) and maps it to a department.': { hi: 'शिकायतों के नमूना डेटा पर प्रशिक्षित scikit-learn पाठ वर्गीकारक हर शिकायत को 8 श्रेणियों में बाँटकर संबंधित विभाग चुनता है।' },
+  'Hindi text preparation': { hi: 'हिन्दी पाठ की तैयारी' }, 'Local machine translation': { hi: 'स्थानीय मशीन अनुवाद' }, 'Devanagari complaints are preserved as submitted and translated locally to English before the existing text-analysis checks. The translation and English-trained models can make mistakes, so AI results need staff review.': { hi: 'देवनागरी में दर्ज शिकायत मूल रूप में सुरक्षित रहती है और मौजूदा पाठ विश्लेषण से पहले स्थानीय रूप से अंग्रेज़ी में अनुवादित होती है। अनुवाद और अंग्रेज़ी पर प्रशिक्षित मॉडल गलतियाँ कर सकते हैं, इसलिए कर्मचारियों को AI परिणामों की समीक्षा करनी चाहिए।' },
+  'Priority detection': { hi: 'प्राथमिकता पहचान' }, 'Rule-based': { hi: 'नियम-आधारित' }, 'Keyword and category signals (e.g. "gas leak", "live wire") assign Critical/High/Medium/Low priority.': { hi: 'मुख्य शब्द और श्रेणी संकेतों से अत्यावश्यक, उच्च, मध्यम या कम प्राथमिकता तय होती है।' },
+  'Sentiment analysis': { hi: 'भावना विश्लेषण' }, 'Rule-based (VADER)': { hi: 'नियम-आधारित (VADER)' }, 'The complaint text is scored for sentiment to help admins spot distressed citizens.': { hi: 'शिकायत के पाठ में भावना का अनुमान लगाया जाता है, जिससे कर्मचारियों को परेशान नागरिकों की पहचान में मदद मिलती है।' },
+  'Duplicate & repeated-submission detection': { hi: 'मिलती-जुलती और बार-बार दर्ज शिकायतों की पहचान' }, 'Sentence-embedding similarity groups near-identical reports so the same issue isn\'t worked twice.': { hi: 'वाक्य एम्बेडिंग से बहुत मिलती-जुलती शिकायतें पहचानी जाती हैं, ताकि एक ही समस्या पर दो बार काम न हो।' }, 'Hotspot mapping': { hi: 'समस्या-क्षेत्र मानचित्रण' }, 'ML (DBSCAN clustering)': { hi: 'ML (DBSCAN क्लस्टरिंग)' }, 'Geo-tagged complaints are clustered to surface neighborhoods with recurring issues.': { hi: 'स्थान सहित शिकायतों के समूह बनाकर बार-बार समस्या वाले इलाकों को दिखाया जाता है।' },
+  'Spam detection': { hi: 'स्पैम पहचान' }, 'Text is scored for spam signals — promotional phrasing, links, excessive caps, repeated characters — independent of the fake-complaint check below.': { hi: 'विज्ञापन भाषा, लिंक, बहुत अधिक बड़े अक्षर और दोहराए गए वर्ण जैसे स्पैम संकेत जाँचे जाते हैं।' }, 'Fake-complaint detection': { hi: 'फर्जी शिकायत संकेत' }, 'Composite heuristic': { hi: 'संयुक्त अनुमान' }, 'Combines a text-gibberish check (no-vowel words, consonant clusters, repetitive wording) with the spam score and duplicate/repeated-submission signals into one fake-likelihood score for admin review.': { hi: 'अस्पष्ट पाठ, स्पैम स्कोर और दोहराव के संकेत मिलाकर समीक्षा हेतु एक संभावित फर्जी शिकायत स्कोर बनाया जाता है। यह स्वतः शिकायत अस्वीकार नहीं करता।' },
+  'Photo analysis': { hi: 'तस्वीर विश्लेषण' }, 'Pretrained model + heuristics': { hi: 'पहले से प्रशिक्षित मॉडल और अनुमान नियम' }, 'Uploaded photos run through a pretrained YOLOv8n object-detection model (general objects — cars, people, etc. — not civic-issue-specific) plus lightweight OpenCV heuristics that flag pothole, garbage, and water-logging candidates. No labeled civic-imagery dataset exists yet, so heuristic results are rough hints, not verified findings.': { hi: 'अपलोड की गई तस्वीरों पर सामान्य वस्तुओं के लिए पहले से प्रशिक्षित YOLOv8n और गड्ढे, कचरे तथा जलभराव के संभावित संकेतों के लिए OpenCV नियम चलते हैं। नागरिक समस्याओं के लेबल वाले चित्र डेटा पर मॉडल अभी प्रशिक्षित नहीं है, इसलिए ये केवल संकेत हैं, पुष्ट निष्कर्ष नहीं।' },
+  'Resolution-time estimate': { hi: 'समाधान समय का अनुमान' }, 'Trained ML model (synthetic data)': { hi: 'प्रशिक्षित ML मॉडल (कृत्रिम डेटा)' }, 'A RandomForest regressor estimates hours-to-resolution by category and priority. It\'s trained on synthetic data derived from typical SLA targets, since this deployment has no real historical resolution-time data yet.': { hi: 'RandomForest मॉडल श्रेणी और प्राथमिकता के आधार पर समाधान समय का अनुमान लगाता है। वास्तविक ऐतिहासिक समय उपलब्ध न होने से इसका प्रशिक्षण सामान्य SLA लक्ष्यों से बनाए गए कृत्रिम डेटा पर हुआ है।' },
+  'Voice complaints': { hi: 'आवाज़ से शिकायत' }, 'Browser API': { hi: 'ब्राउज़र API' }, 'Citizens can speak a complaint instead of typing, using the browser\'s built-in Web Speech API (Chrome/Edge).': { hi: 'नागरिक टाइप करने के बजाय ब्राउज़र के Web Speech API से शिकायत बोल सकते हैं; यह सुविधा Chrome और Edge में उपलब्ध हो सकती है।' }, 'Help chatbot': { hi: 'सहायता चैटबॉट' }, 'Answers common status/process questions in the dashboard — no LLM involved.': { hi: 'डैशबोर्ड में शिकायत की स्थिति और प्रक्रिया से जुड़े सामान्य प्रश्नों के उत्तर देता है; इसमें LLM का उपयोग नहीं है।' },
+  Roads: { hi: 'सड़कें' }, 'Water Supply': { hi: 'जल आपूर्ति' }, Electricity: { hi: 'बिजली' }, Garbage: { hi: 'कचरा' }, Drainage: { hi: 'जल निकासी' }, Health: { hi: 'स्वास्थ्य' }, Transport: { hi: 'परिवहन' }, 'Public Safety': { hi: 'सार्वजनिक सुरक्षा' },
+  'In Progress': { hi: 'कार्य प्रगति पर' }, Received: { hi: 'प्राप्त' }, Rejected: { hi: 'अस्वीकृत' }, Unassigned: { hi: 'असाइन नहीं किया गया' },
+  'Your complaint is saved in its original language. Hindi translation is experimental; AI category, priority, and sentiment may be wrong and need staff review. Hindi complaints are sent for manual department routing.': { hi: 'आपकी शिकायत मूल भाषा में सहेजी जाती है। हिन्दी अनुवाद प्रयोगात्मक है; AI श्रेणी, प्राथमिकता और भावना गलत हो सकती है, इसलिए कर्मचारी समीक्षा करें। हिन्दी शिकायतों को विभाग तय करने के लिए कर्मचारियों के पास भेजा जाता है।' },
+  'AI-powered governance': { hi: 'AI-संचालित शासन' },
+  'Empowering Indian cities with AI-driven civic action.': { hi: 'AI-आधारित नागरिक सेवाओं से भारतीय शहरों को सशक्त बनाना।' },
+  'Civic AI takes a citizen complaint about roads, water, electricity, garbage, or safety and uses machine learning to classify it, prioritize it, and get it in front of the right department — with full tracking from submission to resolution.': { hi: 'Civic AI सड़क, पानी, बिजली, कचरे या सुरक्षा से जुड़ी नागरिक शिकायत को मशीन लर्निंग से वर्गीकृत करता है, प्राथमिकता तय करता है और सही विभाग तक पहुँचाता है — जमा करने से समाधान तक पूरी स्थिति उपलब्ध रहती है।' },
+  'Citizen Login': { hi: 'नागरिक लॉग इन' },
+  'Authorized staff portal': { hi: 'अधिकृत कर्मचारी पोर्टल' },
+  'Citizen portal': { hi: 'नागरिक पोर्टल' },
+  'Transparency through innovation': { hi: 'नवाचार के माध्यम से पारदर्शिता' },
+  'Better cities begin when every voice can be heard.': { hi: 'बेहतर शहर की शुरुआत हर आवाज़ को सुनने से होती है।' },
+  'Staff portal': { hi: 'कर्मचारी पोर्टल' },
+  'Built for transparent civic action': { hi: 'पारदर्शी नागरिक सेवाओं के लिए बनाया गया' },
+  'AI Classification': { hi: 'AI वर्गीकरण' },
+  'Every complaint is auto-sorted into a category and routed to the right department.': { hi: 'हर शिकायत को श्रेणी में बाँटकर सही विभाग तक भेजा जाता है।' },
+  'Priority Detection': { hi: 'प्राथमिकता पहचान' },
+  'Keyword and category signals flag Critical/High-priority issues for faster response.': { hi: 'मुख्य शब्द और श्रेणी के आधार पर अत्यावश्यक और उच्च प्राथमिकता वाले मामलों को तेज़ कार्रवाई के लिए चिह्नित किया जाता है।' },
+  'Duplicate Detection': { hi: 'दोहराव पहचान' },
+  "Sentence-embedding similarity groups near-identical reports so the same issue isn't worked twice.": { hi: 'मिलती-जुलती शिकायतों को समूहित किया जाता है ताकि एक ही समस्या पर दो बार काम न हो।' },
+  'Hotspot Mapping': { hi: 'समस्या क्षेत्रों का मानचित्र' },
+  'Geo-clustering surfaces neighborhoods with recurring problems on an admin map.': { hi: 'भौगोलिक समूहों से बार-बार समस्या वाले इलाकों को प्रशासनिक मानचित्र पर दिखाया जाता है।' },
+  'Voice Complaints': { hi: 'आवाज़ से शिकायत' },
+  "Speak your complaint instead of typing it, using your browser's built-in speech recognition.": { hi: 'टाइप करने के बजाय ब्राउज़र की वाक् पहचान सुविधा से अपनी शिकायत बोलकर दर्ज करें।' },
+  'Spam & Fake Detection': { hi: 'स्पैम और संदिग्ध शिकायत पहचान' },
+  'Heuristic checks flag promotional junk, gibberish text, and resubmitted complaints for admin review.': { hi: 'नियम-आधारित जाँच प्रचार सामग्री, निरर्थक पाठ और दोबारा भेजी गई शिकायतों को प्रशासनिक समीक्षा के लिए चिह्नित करती है।' },
+  'Photo Analysis': { hi: 'तस्वीर विश्लेषण' },
+  'Uploaded photos are scanned with an object-detection model plus heuristic pothole/garbage/water-logging candidates.': { hi: 'अपलोड की गई तस्वीरों में वस्तु-पहचान मॉडल और नियम-आधारित संकेतों से गड्ढे, कचरे और जलभराव के संभावित मामले खोजे जाते हैं।' },
+  'Resolution Estimates': { hi: 'समाधान का अनुमान' },
+  'A trained regression model gives citizens a realistic time-to-resolution estimate.': { hi: 'प्रशिक्षित मॉडल नागरिकों को समाधान में लगने वाले समय का अनुमान देता है।' },
+  'Help Chatbot': { hi: 'सहायता चैटबॉट' },
+  'A rule-based assistant answers status and process questions right in the dashboard.': { hi: 'नियम-आधारित सहायक डैशबोर्ड में स्थिति और प्रक्रिया से जुड़े सवालों के जवाब देता है।' },
+  'AI Triage': { hi: 'AI प्राथमिक जाँच' },
+  'The system classifies, prioritizes, and routes it to the right department automatically.': { hi: 'सिस्टम शिकायत को वर्गीकृत करके प्राथमिकता तय करती है और सही विभाग तक भेजती है।' },
+  'Officer Action': { hi: 'अधिकारी की कार्रवाई' },
+  'Admins assign a field officer and track the complaint through to resolution.': { hi: 'प्रशासक क्षेत्र अधिकारी नियुक्त करते हैं और समाधान तक शिकायत की स्थिति देखते हैं।' },
+  Feedback: { hi: 'प्रतिक्रिया' },
+  'Once resolved, citizens rate the outcome — closing the loop.': { hi: 'समाधान के बाद नागरिक परिणाम को रेट करते हैं, जिससे प्रक्रिया पूरी होती है।' },
+  'How it works': { hi: 'यह कैसे काम करता है' },
+  'Ready to report something?': { hi: 'क्या आप कोई समस्या दर्ज करना चाहते हैं?' },
+  'Registration takes under a minute — no department knowledge required.': { hi: 'पंजीकरण में एक मिनट से कम समय लगता है — विभाग की जानकारी आवश्यक नहीं।' },
+  'Get Started': { hi: 'शुरू करें' },
+  'About this project': { hi: 'इस परियोजना के बारे में' },
+  'We will notify you as it moves through review and resolution.': { hi: 'समीक्षा और समाधान की प्रक्रिया में आगे बढ़ने पर हम आपको सूचित करेंगे।' },
+  'Photos could not be uploaded. Your report was still submitted.': { hi: 'तस्वीरें अपलोड नहीं हो सकीं, लेकिन आपकी रिपोर्ट जमा हो गई है।' },
+  'Failed to submit report': { hi: 'रिपोर्ट जमा नहीं हो सकी' },
+  'Click to upload': { hi: 'अपलोड करने के लिए क्लिक करें' },
+  'or drag and drop': { hi: 'या तस्वीरें यहाँ खींचें' },
+  'Remove photo': { hi: 'तस्वीर हटाएँ' },
+  'Loading profile…': { hi: 'प्रोफ़ाइल लोड हो रही है…' },
+  'Back to all complaints': { hi: 'सभी शिकायतों पर वापस जाएँ' },
+  'Back to my complaints': { hi: 'मेरी शिकायतों पर वापस जाएँ' },
+  Received: { hi: 'प्राप्त' }, Rejected: { hi: 'अस्वीकृत' },
+  'In Progress': { hi: 'कार्य प्रगति पर' }, Submitted: { hi: 'दर्ज' },
+  'Ticket status': { hi: 'शिकायत की स्थिति' },
+  'Assigned to': { hi: 'नियुक्त अधिकारी' }, Unassigned: { hi: 'नियुक्त नहीं' },
+  'AI Analysis': { hi: 'AI विश्लेषण' }, Category: { hi: 'श्रेणी' }, Department: { hi: 'विभाग' }, Priority: { hi: 'प्राथमिकता' }, Sentiment: { hi: 'भावना' },
+  Confidence: { hi: 'विश्वास स्तर' }, 'Estimated Resolution': { hi: 'समाधान का अनुमान' }, 'SLA-based estimate, not a guarantee': { hi: 'SLA पर आधारित अनुमान, गारंटी नहीं' },
+  Rated: { hi: 'रेटिंग दी गई' }, 'How satisfied are you with the resolution?': { hi: 'समाधान से आप कितने संतुष्ट हैं?' }, 'Optional review...': { hi: 'वैकल्पिक समीक्षा...' }, 'Submit Feedback': { hi: 'प्रतिक्रिया जमा करें' }, 'No feedback submitted yet.': { hi: 'अभी तक कोई प्रतिक्रिया नहीं दी गई।' },
+  'Microphone access denied': { hi: 'माइक्रोफ़ोन की अनुमति नहीं मिली' },
+  'No microphone found': { hi: 'माइक्रोफ़ोन नहीं मिला' },
+  "Didn't catch that — try again": { hi: 'आवाज़ समझ नहीं आई — फिर कोशिश करें' },
+  'No connection to the speech recognition service': { hi: 'वाक् पहचान सेवा से कनेक्शन नहीं है' },
+  'Language not supported': { hi: 'यह भाषा समर्थित नहीं है' },
+  'Speech recognition error': { hi: 'वाक् पहचान में त्रुटि' },
+  Low: { hi: 'कम' }, Medium: { hi: 'मध्यम' }, High: { hi: 'उच्च' }, Critical: { hi: 'अत्यावश्यक' },
+  Positive: { hi: 'सकारात्मक' }, Neutral: { hi: 'तटस्थ' }, Negative: { hi: 'नकारात्मक' },
+  'JPEG, PNG, WEBP or GIF, up to 5MB each (max': { hi: 'JPEG, PNG, WEBP या GIF, प्रत्येक अधिकतम 5MB (कुल अधिकतम' },
+  Pinned: { hi: 'पिन किया गया' },
+};
+
+const LanguageContext = createContext(null);
+
+export function LanguageProvider({ children }) {
+  const [language, setLanguage] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved === 'hi' ? saved : 'en';
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, language);
+    document.documentElement.lang = language;
+  }, [language]);
+
+  const value = useMemo(() => ({
+    language,
+    setLanguage,
+    speechLocale: language === 'hi' ? 'hi-IN' : 'en-IN',
+    t: (text) => additionalTranslations[text]?.[language] || translations[language]?.[text] || text,
+  }), [language]);
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+}
+
+export function useLanguage() {
+  const context = useContext(LanguageContext);
+  if (!context) throw new Error('useLanguage must be used within LanguageProvider');
+  return context;
+}
