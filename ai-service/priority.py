@@ -10,14 +10,12 @@ HIGH_KEYWORDS = [
 ]
 
 DEFAULT_PRIORITY_BY_CATEGORY = {
-    "Public Safety": "High",
-    "Health": "High",
-    "Electricity": "Medium",
-    "Drainage": "Medium",
+    "Electricity and Streetlights": "Medium",
+    "Sewerage and Drainage": "Medium",
     "Water Supply": "Medium",
-    "Roads": "Medium",
-    "Garbage": "Low",
-    "Transport": "Low",
+    "Roads and Footpaths": "Medium",
+    "Solid Waste and Garbage": "Low",
+    "Public Transport": "Low",
 }
 
 

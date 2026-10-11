@@ -3,14 +3,12 @@ const pool = require('../config/db');
 // Rule-based only — no LLM. Matches the existing AI service's classification
 // categories 1:1 so descriptions stay accurate as departments are seeded.
 const DEPARTMENT_DESCRIPTIONS = {
-    'Roads': 'Potholes, road damage, broken footpaths, damaged dividers.',
+    'Roads and Footpaths': 'Potholes, road damage, broken footpaths, damaged dividers.',
     'Water Supply': 'No water, low pressure, contaminated water, pipe leaks.',
-    'Electricity': 'Power outages, sparking or exposed wires, damaged poles.',
-    'Garbage': 'Overflowing bins, missed pickup, illegal dumping.',
-    'Drainage': 'Blocked drains, sewage overflow, flooding.',
-    'Health': 'Public health hazards, disease risk, sanitation issues.',
-    'Transport': 'Public transport issues, bus stops, traffic signals.',
-    'Public Safety': 'Unsafe structures, hazards, general safety concerns.',
+    'Electricity and Streetlights': 'Power outages, streetlight failures, sparking or exposed wires, damaged poles.',
+    'Solid Waste and Garbage': 'Overflowing bins, missed pickup, litter and illegal dumping.',
+    'Sewerage and Drainage': 'Blocked drains, sewage overflow, flooding and waterlogging.',
+    'Public Transport': 'City bus delays, overcrowding, bus routes, bus stops and service issues.',
 };
 
 const FAQS = [
@@ -113,7 +111,7 @@ async function handleTrackIntent(message, user) {
 }
 
 async function handleDepartmentsIntent() {
-    const { rows } = await pool.query('SELECT name FROM departments ORDER BY name');
+    const { rows } = await pool.query('SELECT name FROM departments WHERE is_active = true ORDER BY name');
     if (rows.length === 0) {
         return 'No departments are configured yet.';
     }

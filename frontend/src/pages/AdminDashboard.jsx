@@ -22,17 +22,31 @@ function isFlagged(c) {
     c.is_profane ||
     (c.spam_score != null && c.spam_score >= 0.5) ||
     c.is_repeated_submission ||
-    c.is_likely_fake
+    c.is_likely_fake ||
+    c.fake_score == null
   );
 }
 
-function FlagBadges({ complaint }) {
-  if (!isFlagged(complaint)) {
-    return <span className="text-paper-line dark:text-board-line">—</span>;
-  }
-
+function FlagBadges({ complaint, t }) {
+  const hasRiskScore = complaint.fake_score != null && Number.isFinite(Number(complaint.fake_score));
+  const riskPercent = hasRiskScore ? Math.round(Number(complaint.fake_score) * 100) : null;
+  const analysisSource = complaint.source_language === 'hi'
+    ? complaint.ai_translation_used
+      ? t('Risk checks used an English translation of this Hindi complaint; review the original text.')
+      : t('Hindi text checks were unavailable. Review this complaint manually.')
+    : t('Heuristic risk score, not a probability that the complaint is false.');
   return (
     <div className="flex gap-1">
+      <span
+        title={`${analysisSource} ${complaint.fake_signals?.join(', ') || ''}`}
+        className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+          hasRiskScore && riskPercent >= 50
+            ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200'
+            : 'bg-paper-warm text-ink-soft dark:bg-board-line dark:text-paper'
+        }`}
+      >
+        {hasRiskScore ? `${t('Risk')} ${riskPercent}%` : t('Not assessed')}
+      </span>
       {complaint.is_profane && <span title="Profanity detected">🤬</span>}
 
       {complaint.spam_score != null && complaint.spam_score >= 0.5 && (
@@ -55,9 +69,7 @@ function FlagBadges({ complaint }) {
 
       {complaint.is_likely_fake && (
         <span
-          title={`Fake-complaint score ${Math.round(
-            (complaint.fake_score || 0) * 100
-          )}%: ${complaint.fake_signals?.join(', ') || 'n/a'}`}
+          title={`${analysisSource} ${complaint.fake_signals?.join(', ') || 'n/a'}`}
         >
           🎭
         </span>
@@ -74,7 +86,7 @@ const COLUMNS = [
   { key: 'sentiment', label: 'Sentiment' },
   { key: 'resolution', label: 'Est. Resolution' },
   { key: 'officer', label: 'Officer' },
-  { key: 'flags', label: 'Flags' },
+  { key: 'flags', label: 'Risk & flags' },
   { key: 'status', label: 'Status' },
   { key: 'submitted', label: 'Submitted' },
 ];
@@ -245,11 +257,7 @@ export default function AdminDashboard() {
     }
   }
 
-  const departments = [
-    ...new Set(
-      complaints.map((c) => c.department_name).filter(Boolean)
-    ),
-  ];
+  const departments = allDepartments.map((d) => d.name);
 
   const filtered = complaints.filter((c) => {
     if (statusFilter !== 'all' && c.status !== statusFilter) return false;
@@ -578,7 +586,7 @@ export default function AdminDashboard() {
                 </td>
 
                 <td className="px-4 py-3">
-                  <FlagBadges complaint={c} />
+                  <FlagBadges complaint={c} t={t} />
                 </td>
 
                 <td

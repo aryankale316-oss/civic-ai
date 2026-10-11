@@ -25,6 +25,7 @@ function clusterRadius(count) {
 export default function AdminHotspots() {
   const { t } = useLanguage();
   const [data, setData] = useState({ clusters: [], noise: [] });
+  const [forecast, setForecast] = useState({ predicted_hotspots: [], note: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -34,9 +35,13 @@ export default function AdminHotspots() {
       .then(({ data }) => setData(data))
       .catch(() => setError('Failed to load hotspots'))
       .finally(() => setLoading(false));
+    apiClient
+      .get('/insights/forecast-hotspots')
+      .then(({ data: forecastData }) => setForecast(forecastData))
+      .catch(() => setForecast({ predicted_hotspots: [], note: 'Forecast data could not be loaded.' }));
   }, []);
 
-  const allPoints = [
+  const historicalPoints = [
     ...data.clusters.flatMap((c) =>
       c.complaints.map((comp) => ({
         lat: comp.latitude,
@@ -47,6 +52,11 @@ export default function AdminHotspots() {
       lat: comp.latitude,
       lng: comp.longitude,
     })),
+  ];
+  const predictedHotspots = forecast.predicted_hotspots || [];
+  const allPoints = [
+    ...historicalPoints,
+    ...predictedHotspots.map((zone) => ({ lat: zone.latitude, lng: zone.longitude })),
   ];
 
   const totalClustered = data.clusters.reduce(
@@ -81,6 +91,13 @@ export default function AdminHotspots() {
           hotspot).
         </p>
 
+        <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-md border border-paper-line bg-white p-3 text-xs dark:border-board-line dark:bg-board">
+          <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[#b23a2e]" />{t('Current DBSCAN clusters')}</span>
+          <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full border-2 border-[#6b4eff] bg-[#d9d1ff]" />{t('Forecast increase')} ({forecast.month || t('Not available')})</span>
+          <span className="text-ink-soft">{t('Forecast markers indicate estimated complaints above the recent average; they are not probabilities.')}</span>
+        </div>
+        {forecast.note && <p className="-mt-3 mb-5 text-xs leading-5 text-ink-soft">{forecast.note}</p>}
+
         {loading && <SkeletonCard />}
 
         {error && (
@@ -109,7 +126,7 @@ export default function AdminHotspots() {
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                <HeatmapLayer points={allPoints} />
+                <HeatmapLayer points={historicalPoints} />
 
                 {data.clusters.map((cluster) => (
                   <CircleMarker
@@ -172,6 +189,25 @@ export default function AdminHotspots() {
                       >
                         #{c.id} {c.title}
                       </Link>
+                    </Popup>
+                  </CircleMarker>
+                ))}
+
+                {predictedHotspots.map((zone, index) => (
+                  <CircleMarker
+                    key={`forecast-${zone.latitude}-${zone.longitude}-${index}`}
+                    center={[zone.latitude, zone.longitude]}
+                    radius={Math.min(8 + zone.predicted_count * 2, 24)}
+                    pathOptions={{ color: '#6b4eff', fillColor: '#d9d1ff', fillOpacity: 0.85, weight: 3 }}
+                  >
+                    <Popup>
+                      <div className="text-sm">
+                        <p className="font-semibold">{t('Predicted complaint increase')}</p>
+                        <p>{t('Forecast month')}: {forecast.month}</p>
+                        <p>{t('Estimated complaints')}: {zone.predicted_count}</p>
+                        <p>{t('Recent monthly average')}: {zone.recent_average}</p>
+                        <p className="mt-1 text-xs">{t('Backtest MAE')}: {zone.backtest?.mae ?? t('Not available')}</p>
+                      </div>
                     </Popup>
                   </CircleMarker>
                 ))}

@@ -58,6 +58,7 @@ async function getDepartmentsReport() {
                ROUND(AVG(EXTRACT(EPOCH FROM (c.resolved_at - c.created_at)) / 3600) FILTER (WHERE c.resolved_at IS NOT NULL))::int AS avg_resolution_hours
         FROM complaints c
         LEFT JOIN departments d ON d.id = c.department_id
+         WHERE d.is_active = true OR c.department_id IS NULL
         GROUP BY d.name
         ORDER BY total_complaints DESC
     `);
@@ -114,11 +115,20 @@ async function getAnalyticsReport() {
         pool.query(`
             SELECT COALESCE(d.name, 'Unassigned') AS label, count(*)::int AS value
             FROM complaints c LEFT JOIN departments d ON d.id = c.department_id
+            WHERE d.is_active = true OR c.department_id IS NULL
             GROUP BY 1 ORDER BY value DESC LIMIT 5
         `),
         pool.query(`
-            SELECT COALESCE(ai_category, 'Unclassified') AS label, count(*)::int AS value
-            FROM complaints GROUP BY 1 ORDER BY value DESC LIMIT 5
+            SELECT CASE ai_category
+                       WHEN 'Roads' THEN 'Roads and Footpaths'
+                       WHEN 'Garbage' THEN 'Solid Waste and Garbage'
+                       WHEN 'Drainage' THEN 'Sewerage and Drainage'
+                       WHEN 'Electricity' THEN 'Electricity and Streetlights'
+                       WHEN 'Transport' THEN 'Public Transport'
+                       ELSE COALESCE(ai_category, 'Unclassified')
+                   END AS label, count(*)::int AS value
+            FROM complaints WHERE ai_category IS NULL OR ai_category NOT IN ('Health', 'Public Safety')
+            GROUP BY 1 ORDER BY value DESC LIMIT 5
         `),
         pool.query(`
             SELECT AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600)::float AS avg_hours

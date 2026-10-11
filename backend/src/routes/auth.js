@@ -45,6 +45,11 @@ router.post('/login', async (req, res) => {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (user.role === 'dept_admin') {
+        const { rows } = await pool.query('SELECT is_active FROM departments WHERE id = $1', [user.department_id]);
+        if (!rows[0]?.is_active) return res.status(403).json({ error: 'This department account is no longer active' });
+    }
+
     const token = jwt.sign(
         { id: user.id, role: user.role, department_id: user.department_id },
         process.env.JWT_SECRET,
@@ -111,7 +116,7 @@ router.post('/dept-admins', requireAuth, requireRole('admin'), async (req, res) 
         return res.status(400).json({ error: 'name, email, password, and department_id are required' });
     }
 
-    const deptRow = await pool.query('SELECT id FROM departments WHERE id = $1', [department_id]);
+    const deptRow = await pool.query('SELECT id FROM departments WHERE id = $1 AND is_active = true', [department_id]);
     if (deptRow.rows.length === 0) {
         return res.status(400).json({ error: 'Department not found' });
     }

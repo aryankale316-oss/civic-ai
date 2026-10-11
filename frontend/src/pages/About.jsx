@@ -12,7 +12,7 @@ const AI_CAPABILITIES = [
   {
     title: 'Category & department classification',
     status: 'Trained ML model',
-    body: 'A scikit-learn text classifier trained on seed complaint data sorts each submission into one of 8 categories (Roads, Water Supply, Electricity, Garbage, Drainage, Health, Transport, Public Safety) and maps it to a department.',
+    body: 'A scikit-learn text classifier trained on seed complaint data sorts each submission into one of 6 categories (Roads and Footpaths, Solid Waste and Garbage, Water Supply, Sewerage and Drainage, Electricity and Streetlights, Public Transport) and maps it to a department.',
   },
   {
     title: 'Priority detection',

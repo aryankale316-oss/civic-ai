@@ -19,8 +19,10 @@ ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('citizen', 'ad
 
 CREATE TABLE IF NOT EXISTS departments (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE
+    name TEXT NOT NULL UNIQUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
+ALTER TABLE departments ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- Only set for role = 'dept_admin'; identifies which department's
 -- complaints this account is scoped to. Added here (after `departments`
@@ -80,6 +82,7 @@ CREATE TABLE IF NOT EXISTS complaint_embeddings (
 ALTER TABLE complaint_images ADD COLUMN IF NOT EXISTS detected_objects JSONB;
 ALTER TABLE complaint_images ADD COLUMN IF NOT EXISTS analysis_is_placeholder BOOLEAN;
 ALTER TABLE complaint_images ADD COLUMN IF NOT EXISTS analysis_note TEXT;
+ALTER TABLE complaint_images ADD COLUMN IF NOT EXISTS image_cross_check JSONB;
 ALTER TABLE complaint_images ADD COLUMN IF NOT EXISTS analyzed_at TIMESTAMPTZ;
 
 -- Resolution-time estimate (see ai-service/train_resolution.py — trained on
@@ -165,3 +168,40 @@ ALTER TABLE complaints ADD COLUMN IF NOT EXISTS repeated_of_complaint_id INTEGER
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS fake_score REAL;
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS fake_signals TEXT[];
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS is_likely_fake BOOLEAN NOT NULL DEFAULT false;
+
+-- Canonical department set. Rename legacy names in place to preserve IDs and
+-- all complaint/officer/admin relationships; retire Health/Public Safety and
+-- any custom departments without deleting their historical records.
+DO $$
+DECLARE old_name TEXT; new_name TEXT; old_id INTEGER; new_id INTEGER;
+BEGIN
+    FOR old_name, new_name IN
+        SELECT * FROM (VALUES
+            ('Roads', 'Roads and Footpaths'),
+            ('Garbage', 'Solid Waste and Garbage'),
+            ('Drainage', 'Sewerage and Drainage'),
+            ('Electricity', 'Electricity and Streetlights'),
+            ('Transport', 'Public Transport')
+        ) AS names(old_name, new_name)
+    LOOP
+        SELECT id INTO old_id FROM departments WHERE name = old_name;
+        IF old_id IS NOT NULL THEN
+            UPDATE complaints SET ai_category = new_name WHERE ai_category = old_name;
+            SELECT id INTO new_id FROM departments WHERE name = new_name;
+            IF new_id IS NULL THEN
+                UPDATE departments SET name = new_name WHERE id = old_id;
+            ELSE
+                UPDATE complaints SET department_id = new_id WHERE department_id = old_id;
+                UPDATE officers SET department_id = new_id WHERE department_id = old_id;
+                UPDATE users SET department_id = new_id WHERE department_id = old_id;
+                DELETE FROM departments WHERE id = old_id;
+            END IF;
+        END IF;
+        old_id := NULL; new_id := NULL;
+    END LOOP;
+    UPDATE departments
+       SET is_active = name = ANY(ARRAY[
+           'Roads and Footpaths', 'Solid Waste and Garbage', 'Water Supply',
+           'Sewerage and Drainage', 'Electricity and Streetlights', 'Public Transport'
+       ]::text[]);
+END $$;

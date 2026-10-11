@@ -34,12 +34,21 @@ async function prepareAnalysisText(text) {
     return data;
 }
 
-async function analyzeImage(filePath) {
+async function analyzeImage(filePath, complaint) {
+    let analysisText = `${complaint.title}. ${complaint.description}`;
+    try {
+        const prepared = await prepareAnalysisText(analysisText);
+        analysisText = prepared.analysis_text || analysisText;
+    } catch (err) {
+        console.warn('Could not prepare complaint text for image cross-check:', err.message);
+    }
     const form = new FormData();
     form.append('image', fsSync.createReadStream(filePath));
+    form.append('complaint_text', analysisText);
+    form.append('department', complaint.department_name || '');
     const { data } = await axios.post(`${process.env.AI_SERVICE_URL}/detect-issues`, form, {
         headers: form.getHeaders(),
-        timeout: 15000,
+        timeout: 180000,
     });
     return data;
 }
@@ -70,8 +79,10 @@ const FAKE_SCORE_THRESHOLD = 0.5;
 function computeFakeScore({ gibberishResult, spamScore, isRepeatedSubmission, duplicateCount }) {
     // Give strong gibberish signals enough weight to cross the review
     // threshold on their own; this remains a staff-review flag, not a rejection.
-    let score = gibberishResult.gibberish_score * 0.8;
-    const signals = [...gibberishResult.gibberish_signals];
+    const hasGibberishCheck = Number.isFinite(gibberishResult?.gibberish_score);
+    const hasSpamCheck = Number.isFinite(spamScore);
+    let score = hasGibberishCheck ? gibberishResult.gibberish_score * 0.8 : 0;
+    const signals = [...(gibberishResult?.gibberish_signals || [])];
 
     if (spamScore != null && spamScore >= 0.5) {
         score += 0.2;
@@ -84,6 +95,13 @@ function computeFakeScore({ gibberishResult, spamScore, isRepeatedSubmission, du
     if (duplicateCount > 0) {
         score += 0.3;
         signals.push(`near-duplicate of ${duplicateCount} existing complaint(s)`);
+    }
+
+    if (!hasGibberishCheck && !hasSpamCheck) {
+        signals.push('text-based checks were unavailable; manual review is needed');
+        if (!isRepeatedSubmission && duplicateCount === 0) {
+            return { score: null, signals, isLikelyFake: false };
+        }
     }
 
     score = Math.min(score, 1);
@@ -151,7 +169,7 @@ async function findRepeatedSubmission(embedding, userId, excludeComplaintId) {
 }
 
 const IMAGE_COLUMNS = `id, complaint_id, file_path, original_name, mime_type, size_bytes,
-    detected_objects, analysis_is_placeholder, analysis_note, analyzed_at, created_at`;
+    detected_objects, analysis_is_placeholder, analysis_note, image_cross_check, analyzed_at, created_at`;
 
 const COMPLAINT_SELECT = `
     SELECT c.id, c.title, c.description, c.location_text, c.latitude, c.longitude, c.ai_category,
@@ -196,6 +214,7 @@ router.post('/', requireAuth, async (req, res) => {
         };
     }
     const analysisText = textPreparation.analysis_text || combinedText;
+    const canAnalyzeText = textPreparation.source_language !== 'hi' || textPreparation.translation_used === true;
 
     const [aiResult, sentimentResult, moderationResult, fakeResult] = await Promise.all([
         axios
@@ -214,17 +233,17 @@ router.post('/', requireAuth, async (req, res) => {
                 console.error('Sentiment analysis call failed:', err.message);
                 return { sentiment: null, score: null };
             }),
-        (textPreparation.source_language === 'hi'
+        (!canAnalyzeText
             ? Promise.resolve({ is_profane: false, spam_score: null, spam_signals: [] })
             : moderateText(analysisText)).catch((err) => {
             console.error('Moderation check failed:', err.message);
             return { is_profane: false, spam_score: null, spam_signals: [] };
         }),
-        (textPreparation.source_language === 'hi'
-            ? Promise.resolve({ gibberish_score: 0, gibberish_signals: [] })
+        (!canAnalyzeText
+            ? Promise.resolve({ gibberish_score: null, gibberish_signals: [] })
             : detectFakeText(analysisText)).catch((err) => {
             console.error('Fake-complaint check failed:', err.message);
-            return { gibberish_score: 0, gibberish_signals: [] };
+            return { gibberish_score: null, gibberish_signals: [] };
         }),
     ]);
 
@@ -237,7 +256,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     const [deptRow, resolutionResult] = await Promise.all([
         aiResult.department && textPreparation.source_language !== 'hi'
-            ? pool.query('SELECT id FROM departments WHERE name = $1', [aiResult.department])
+            ? pool.query('SELECT id FROM departments WHERE name = $1 AND is_active = true', [aiResult.department])
             : Promise.resolve({ rows: [] }),
         textPreparation.source_language === 'hi'
             ? Promise.resolve({ estimated_hours: null, estimated_label: null })
@@ -289,6 +308,7 @@ router.post('/', requireAuth, async (req, res) => {
     const complaintId = insertResult.rows[0].id;
 
     try {
+        if (!canAnalyzeText) throw new Error('Hindi translation unavailable; skipping English-only embedding checks');
         const embedding = await fetchEmbedding(analysisText);
         await pool.query(
             'INSERT INTO complaint_embeddings (complaint_id, embedding) VALUES ($1, $2)',
@@ -461,7 +481,11 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 async function loadComplaintForOwner(req, res) {
-    const { rows } = await pool.query('SELECT id, user_id FROM complaints WHERE id = $1', [req.params.id]);
+    const { rows } = await pool.query(
+        `SELECT c.id, c.user_id, c.title, c.description, d.name AS department_name
+         FROM complaints c LEFT JOIN departments d ON d.id = c.department_id WHERE c.id = $1`,
+        [req.params.id]
+    );
     const complaint = rows[0];
     if (!complaint) {
         res.status(404).json({ error: 'Complaint not found' });
@@ -497,13 +521,13 @@ router.post('/:id/images', requireAuth, upload.array('images', 5), async (req, r
         let imageRow = rows[0];
 
         try {
-            const analysis = await analyzeImage(path.join(UPLOADS_DIR, file.filename));
+            const analysis = await analyzeImage(path.join(UPLOADS_DIR, file.filename), complaint);
             const { rows: updatedRows } = await pool.query(
                 `UPDATE complaint_images
-                 SET detected_objects = $1, analysis_is_placeholder = $2, analysis_note = $3, analyzed_at = now()
-                 WHERE id = $4
+                 SET detected_objects = $1, analysis_is_placeholder = $2, analysis_note = $3, image_cross_check = $4, analyzed_at = now()
+                 WHERE id = $5
                  RETURNING ${IMAGE_COLUMNS}`,
-                [JSON.stringify(analysis.detections), analysis.is_placeholder, analysis.note, imageRow.id]
+                [JSON.stringify(analysis.detections), analysis.is_placeholder, analysis.note, JSON.stringify(analysis.cross_check), imageRow.id]
             );
             imageRow = updatedRows[0];
         } catch (err) {
@@ -604,7 +628,12 @@ router.patch('/:id/assign', requireAuth, requireAnyRole(['admin', 'dept_admin'])
     if (!target) return;
 
     if (officer_id != null) {
-        const officerRow = await pool.query('SELECT id FROM officers WHERE id = $1', [officer_id]);
+        const officerRow = await pool.query(
+            `SELECT o.id FROM officers o JOIN departments d ON d.id = o.department_id
+             WHERE o.id = $1 AND o.status = 'active' AND d.is_active = true
+               AND o.department_id = $2`,
+            [officer_id, target.department_id]
+        );
         if (officerRow.rows.length === 0) {
             return res.status(400).json({ error: 'Officer not found' });
         }
@@ -660,7 +689,7 @@ router.patch('/:id/reassign-department', requireAuth, requireAnyRole(['admin', '
     const target = await loadComplaintForStaffAccess(req, res);
     if (!target) return;
 
-    const deptRow = await pool.query('SELECT id FROM departments WHERE id = $1', [department_id]);
+    const deptRow = await pool.query('SELECT id FROM departments WHERE id = $1 AND is_active = true', [department_id]);
     if (deptRow.rows.length === 0) {
         return res.status(400).json({ error: 'Department not found' });
     }

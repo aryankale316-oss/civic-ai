@@ -7,6 +7,7 @@ import { MetricRow, NoticeCard } from '../components/civic';
 import ChartCard from '../components/charts/ChartCard';
 import SingleSeriesBarChart from '../components/charts/SingleSeriesBarChart';
 import SentimentTrendChart from '../components/charts/SentimentTrendChart';
+import CategoryForecastChart from '../components/charts/CategoryForecastChart';
 import PageTransition from '../components/ui/PageTransition';
 import { SkeletonCard } from '../components/ui/Skeleton';
 import { useLanguage } from '../context/LanguageContext';
@@ -22,6 +23,10 @@ export default function AdminInsights() {
       .then(({ data }) => setData(data))
       .catch(() => setError('Failed to load insights'));
   }, []);
+
+  const risingDepartments = (data?.department_forecasts || []).filter(
+    (row) => row.trend === 'increasing'
+  );
 
   return (
     <AdminShell>
@@ -105,6 +110,59 @@ export default function AdminInsights() {
 
             <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
               <ChartCard
+                index={3}
+                title={t('Department complaint forecasts')}
+                subtitle={`${t('Forecast for')} ${data.department_forecasts?.[0]?.month || data.monthly_forecast.month || ''}`}
+              >
+                <CategoryForecastChart data={data.department_forecasts} />
+                <p className="mt-3 text-xs leading-5 text-ink-soft">
+                  {t('Forecasts use the previous 12 completed months. Categories need at least four active months; backtest errors are shown below. These are planning estimates, not probabilities.')}
+                </p>
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="text-ink-soft">
+                      <tr>
+                        <th className="py-2 pr-3">{t('Department')}</th>
+                        <th className="py-2 pr-3">{t('Recent average')}</th>
+                        <th className="py-2 pr-3">{t('Forecast')}</th>
+                        <th className="py-2">{t('MAE / baseline')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(data.department_forecasts || []).map((row) => (
+                        <tr key={row.department} className="border-t border-paper-line dark:border-board-line">
+                          <td className="py-2 pr-3">{t(row.department)}</td>
+                          <td className="py-2 pr-3">{row.recent_average}</td>
+                          <td className="py-2 pr-3">{row.predicted_count ?? t('Insufficient history')}</td>
+                          <td className="py-2">{row.backtest?.available ? `${row.backtest.mae} / ${row.backtest.baselineMae} (${row.backtest.forecasts} ${t('months')})` : t('Not available')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </ChartCard>
+
+              <NoticeCard className="animate-fade-in-up">
+                <h2 className="text-lg font-semibold tracking-tight text-ink dark:text-paper">{t('Categories with forecast increase')}</h2>
+                <p className="mt-1 text-xs text-ink-soft">{t('Compared with each category’s recent three-month average.')}</p>
+                {risingDepartments.length ? (
+                  <ul className="mt-4 space-y-3">
+                    {risingDepartments.map((row) => (
+                      <li key={row.department} className="flex items-center justify-between gap-3 border-b border-paper-line pb-2 text-sm dark:border-board-line">
+                        <span className="text-ink dark:text-paper">{t(row.department)}</span>
+                        <span className="font-mono text-seal-green">+{row.change_count} · {row.predicted_count} {t('estimated complaints')}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-4 text-sm text-ink-soft">{t('No category increase can be identified from the available history.')}</p>
+                )}
+                <p className="mt-4 text-xs leading-5 text-ink-soft">{t('An increase means the estimate is above the recent average; it is not a confidence score.')}</p>
+              </NoticeCard>
+            </div>
+
+            <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <ChartCard
                 index={4}
                   title={t('Sentiment trends')}
                 subtitle={t('Last 12 months')}
@@ -184,12 +242,11 @@ export default function AdminInsights() {
                 style={{ animationDelay: '540ms' }}
               >
                 <h2 className="mb-2 text-sm font-medium text-ink dark:text-paper">
-                  Geographic heatmap
+                  {t('Predicted hotspot map')}
                 </h2>
 
                 <p className="mb-3 text-sm text-ink-soft">
-                  Complaint density and hotspot clusters are visualized on
-                  an interactive map.
+                  {t('View current complaint clusters and separately marked areas where the forecast is above recent history.')}
                 </p>
 
                 <Link

@@ -12,14 +12,12 @@ import { useLanguage } from '../context/LanguageContext';
 const STEPS = ['Describe', 'Location', 'Photos', 'AI review', 'Submit'];
 
 const CATEGORIES = [
-  'Roads',
+  'Roads and Footpaths',
+  'Solid Waste and Garbage',
   'Water Supply',
-  'Electricity',
-  'Garbage',
-  'Drainage',
-  'Health',
-  'Transport',
-  'Public Safety',
+  'Sewerage and Drainage',
+  'Electricity and Streetlights',
+  'Public Transport',
 ];
 
 const INPUT_CLASS =

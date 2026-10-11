@@ -232,6 +232,14 @@ export default function ComplaintDetail() {
                             <p className="text-[10px] text-ink-soft mt-1">No objects detected.</p>
                           )
                         )}
+                        {image.image_cross_check && (
+                          <div className={`mt-2 rounded border p-2 text-xs ${image.image_cross_check.status === 'possible_mismatch' ? 'border-amber-300 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:text-amber-100' : 'border-paper-line bg-paper-warm/50 text-ink-soft dark:border-board-line dark:bg-board-line/30'}`}>
+                            <p className="font-semibold">
+                              {image.image_cross_check.status === 'consistent' ? t('Image and report appear broadly consistent') : image.image_cross_check.status === 'possible_mismatch' ? t('Review possible image/report mismatch') : t('Image/report comparison inconclusive')}
+                            </p>
+                            <p className="mt-1">{t('This is an AI review hint only; it does not verify the complaint.')}</p>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

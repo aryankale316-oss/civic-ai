@@ -56,6 +56,143 @@ const FORECAST_MODELS = [
     { key: 'last_month', label: 'last-month baseline', predict: (values) => values[values.length - 1] },
 ];
 
+function buildDepartmentForecasts(rows, forecastMonth) {
+    const byDepartment = new Map();
+    for (const row of rows) {
+        if (!byDepartment.has(row.department)) byDepartment.set(row.department, []);
+        byDepartment.get(row.department).push(Number(row.count));
+    }
+
+    return [...byDepartment.entries()].map(([department, values]) => {
+        const result = forecastWithBacktest(values);
+        const activeMonths = values.filter((count) => count > 0).length;
+        const recentAverage = averageForecast(values);
+        const predictedCount = activeMonths >= 4 ? result.predictedCount : null;
+        const change = predictedCount == null ? null : predictedCount - recentAverage;
+        return {
+            department,
+            month: forecastMonth,
+            recent_average: recentAverage,
+            predicted_count: predictedCount,
+            change_count: change,
+            trend: change == null ? 'insufficient_history' : change > 0 ? 'increasing' : change < 0 ? 'decreasing' : 'stable',
+            active_months: activeMonths,
+            history_months: values.length,
+            model: result.model,
+            backtest: result.backtest,
+            note: activeMonths >= 4
+                ? result.note
+                : 'Forecast hidden: at least four active months of complaint history are needed for a category estimate.',
+        };
+    }).sort((a, b) => (b.predicted_count ?? -1) - (a.predicted_count ?? -1));
+}
+
+async function getDepartmentForecasts() {
+    const { rows } = await pool.query(`
+        WITH months AS (
+            SELECT generate_series(
+                date_trunc('month', now()) - interval '12 months',
+                date_trunc('month', now()) - interval '1 month',
+                interval '1 month'
+            ) AS month_start
+        ), categories AS (
+            SELECT name FROM departments WHERE is_active = true
+        )
+        SELECT cat.name AS department,
+               to_char(m.month_start, 'YYYY-MM') AS month,
+               COUNT(c.id)::int AS count
+        FROM categories cat CROSS JOIN months m
+        LEFT JOIN complaints c ON date_trunc('month', c.created_at) = m.month_start
+            AND CASE c.ai_category
+                WHEN 'Roads' THEN 'Roads and Footpaths'
+                WHEN 'Garbage' THEN 'Solid Waste and Garbage'
+                WHEN 'Drainage' THEN 'Sewerage and Drainage'
+                WHEN 'Electricity' THEN 'Electricity and Streetlights'
+                WHEN 'Transport' THEN 'Public Transport'
+                ELSE COALESCE(c.ai_category, (SELECT d.name FROM departments d WHERE d.id = c.department_id))
+            END = cat.name
+        GROUP BY cat.name, m.month_start
+        ORDER BY cat.name, m.month_start
+    `);
+    const nextMonth = new Date();
+    nextMonth.setUTCDate(1);
+    nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+    return buildDepartmentForecasts(rows, nextMonth.toISOString().slice(0, 7));
+}
+
+async function getForecastHotspots() {
+    const { rows } = await pool.query(`
+        WITH months AS (
+            SELECT generate_series(
+                date_trunc('month', now()) - interval '12 months',
+                date_trunc('month', now()) - interval '1 month',
+                interval '1 month'
+            ) AS month_start
+        ), cells AS (
+            SELECT round(latitude::numeric, 2) AS cell_lat,
+                   round(longitude::numeric, 2) AS cell_lng
+            FROM complaints
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+              AND created_at >= date_trunc('month', now()) - interval '12 months'
+              AND created_at < date_trunc('month', now())
+            GROUP BY 1, 2
+            HAVING COUNT(*) >= 4
+        )
+        SELECT cells.cell_lat::float AS latitude,
+               cells.cell_lng::float AS longitude,
+               to_char(months.month_start, 'YYYY-MM') AS month,
+               COUNT(c.id)::int AS count
+        FROM cells CROSS JOIN months
+        LEFT JOIN complaints c ON c.latitude IS NOT NULL AND c.longitude IS NOT NULL
+            AND round(c.latitude::numeric, 2) = cells.cell_lat
+            AND round(c.longitude::numeric, 2) = cells.cell_lng
+            AND date_trunc('month', c.created_at) = months.month_start
+        GROUP BY cells.cell_lat, cells.cell_lng, months.month_start
+        ORDER BY cells.cell_lat, cells.cell_lng, months.month_start
+    `);
+
+    const grouped = new Map();
+    for (const row of rows) {
+        const key = `${row.latitude},${row.longitude}`;
+        if (!grouped.has(key)) grouped.set(key, { latitude: Number(row.latitude), longitude: Number(row.longitude), values: [] });
+        grouped.get(key).values.push(Number(row.count));
+    }
+
+    const candidates = [...grouped.values()].flatMap((cell) => {
+        const activeMonths = cell.values.filter((count) => count > 0).length;
+        if (activeMonths < 4) return [];
+        const forecast = forecastWithBacktest(cell.values);
+        if (!forecast.backtest.available || forecast.predictedCount == null) return [];
+        const recentAverage = averageForecast(cell.values);
+        const increase = forecast.predictedCount - recentAverage;
+        if (increase <= 0) return [];
+        return [{
+            ...cell,
+            recent_average: recentAverage,
+            predicted_count: forecast.predictedCount,
+            increase_count: increase,
+            observed_total: cell.values.reduce((sum, count) => sum + count, 0),
+            active_months: activeMonths,
+            model: forecast.model,
+            backtest: forecast.backtest,
+        }];
+    }).sort((a, b) => b.increase_count - a.increase_count || b.predicted_count - a.predicted_count).slice(0, 100);
+
+    const forecastDate = new Date();
+    forecastDate.setUTCDate(1);
+    forecastDate.setUTCMonth(forecastDate.getUTCMonth() + 1);
+    return {
+        month: forecastDate.toISOString().slice(0, 7),
+        available: candidates.length > 0,
+        zones_evaluated: grouped.size,
+        predicted_hotspots: candidates,
+        method: 'One-kilometre approximate coordinate grid with the same rolling-backtest-selected monthly count methods used for department forecasts.',
+        note: rows.length === 0
+            ? 'No geotagged complaint history is available for spatial forecasting.'
+            : 'Only zones with at least four active historical months and an available rolling backtest are shown. A marker means estimated counts are above that zone’s recent three-month average; it is not a probability or a guarantee.',
+    };
+}
+
 // Rolling-origin one-month-ahead backtesting uses only earlier months for
 // each prediction. Select a model only after at least three scored forecasts.
 function forecastWithBacktest(values) {
@@ -159,8 +296,15 @@ async function getInsightsSummary() {
         await Promise.all([
             pool.query('SELECT AVG(ai_confidence)::float AS avg_confidence, COUNT(*)::int AS count FROM complaints WHERE ai_confidence IS NOT NULL'),
             pool.query(`
-                SELECT COALESCE(ai_category, 'Unclassified') AS category, AVG(ai_confidence)::float AS avg_confidence, COUNT(*)::int AS count
-                FROM complaints WHERE ai_confidence IS NOT NULL
+                SELECT CASE ai_category
+                           WHEN 'Roads' THEN 'Roads and Footpaths'
+                           WHEN 'Garbage' THEN 'Solid Waste and Garbage'
+                           WHEN 'Drainage' THEN 'Sewerage and Drainage'
+                           WHEN 'Electricity' THEN 'Electricity and Streetlights'
+                           WHEN 'Transport' THEN 'Public Transport'
+                           ELSE COALESCE(ai_category, 'Unclassified')
+                       END AS category, AVG(ai_confidence)::float AS avg_confidence, COUNT(*)::int AS count
+                FROM complaints WHERE ai_confidence IS NOT NULL AND (ai_category IS NULL OR ai_category NOT IN ('Health', 'Public Safety'))
                 GROUP BY 1 ORDER BY count DESC
             `),
             pool.query("SELECT title, description FROM complaints ORDER BY created_at DESC LIMIT 500"),
@@ -192,6 +336,7 @@ async function getInsightsSummary() {
                        COUNT(*) FILTER (WHERE c.status IN ('submitted', 'in_progress'))::int AS pending_total,
                        ROUND(AVG(EXTRACT(EPOCH FROM (c.resolved_at - c.created_at)) / 3600) FILTER (WHERE c.resolved_at IS NOT NULL))::int AS avg_resolution_hours
                 FROM complaints c LEFT JOIN departments d ON d.id = c.department_id
+                WHERE d.is_active = true OR c.department_id IS NULL
                 GROUP BY d.name ORDER BY pending_total DESC
             `),
             pool.query("SELECT count(*)::int AS count FROM complaints WHERE status IN ('submitted', 'in_progress') AND assigned_officer_id IS NULL"),
@@ -203,6 +348,11 @@ async function getInsightsSummary() {
                 FROM complaints
             `),
         ]);
+
+    const [departmentForecasts, predictedHotspots] = await Promise.all([
+        getDepartmentForecasts(),
+        getForecastHotspots(),
+    ]);
 
     const commonKeywords = extractCommonKeywords(textsResult.rows.map((r) => `${r.title} ${r.description}`));
 
@@ -252,9 +402,11 @@ async function getInsightsSummary() {
             backtest: forecast.backtest,
             note: forecast.note,
         },
+        department_forecasts: departmentForecasts,
+        predicted_hotspots: predictedHotspots,
         moderation_summary: moderationFlags.rows[0],
         recommendations,
     };
 }
 
-module.exports = { getInsightsSummary };
+module.exports = { getInsightsSummary, getForecastHotspots };

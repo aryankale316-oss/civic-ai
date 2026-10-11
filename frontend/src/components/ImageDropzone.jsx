@@ -13,6 +13,7 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const previewUrlsRef = useRef(new Map());
 
   useEffect(() => {
@@ -101,6 +102,16 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
             e.target.value = '';
           }}
         />
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button type="button" disabled={disabled || files.length >= maxFiles} onClick={() => inputRef.current?.click()} className="rounded-md border border-paper-line px-3 py-2 text-xs font-medium text-ink disabled:opacity-50 dark:border-board-line dark:text-paper">
+          {t('Choose photos')}
+        </button>
+        <button type="button" disabled={disabled || files.length >= maxFiles} onClick={() => cameraInputRef.current?.click()} className="rounded-md border border-paper-line px-3 py-2 text-xs font-medium text-ink disabled:opacity-50 dark:border-board-line dark:text-paper">
+          {t('Use camera')}
+        </button>
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" disabled={disabled} className="hidden" onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ''; }} />
       </div>
 
       {error && <p className="text-xs text-stamp-red mt-2">{error}</p>}

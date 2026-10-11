@@ -5,7 +5,7 @@ import cv2
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
@@ -59,15 +59,26 @@ SENTIMENT_POSITIVE_THRESHOLD = 0.05
 SENTIMENT_NEGATIVE_THRESHOLD = -0.05
 
 # Categories map 1:1 onto department names seeded in the backend database.
-CATEGORY_TO_DEPARTMENT = {
-    "Roads": "Roads",
+CATEGORY_ALIASES = {
+    "Roads": "Roads and Footpaths",
+    "Garbage": "Solid Waste and Garbage",
+    "Drainage": "Sewerage and Drainage",
+    "Electricity": "Electricity and Streetlights",
+    "Transport": "Public Transport",
+    "Roads and Footpaths": "Roads and Footpaths",
+    "Solid Waste and Garbage": "Solid Waste and Garbage",
     "Water Supply": "Water Supply",
-    "Electricity": "Electricity",
-    "Garbage": "Garbage",
-    "Drainage": "Drainage",
-    "Health": "Health",
-    "Transport": "Transport",
-    "Public Safety": "Public Safety",
+    "Sewerage and Drainage": "Sewerage and Drainage",
+    "Electricity and Streetlights": "Electricity and Streetlights",
+    "Public Transport": "Public Transport",
+}
+CATEGORY_TO_DEPARTMENT = {name: name for name in set(CATEGORY_ALIASES.values())}
+RESOLUTION_LEGACY_CATEGORIES = {
+    "Roads and Footpaths": "Roads",
+    "Solid Waste and Garbage": "Garbage",
+    "Sewerage and Drainage": "Drainage",
+    "Electricity and Streetlights": "Electricity",
+    "Public Transport": "Transport",
 }
 
 
@@ -161,6 +172,7 @@ class DetectIssuesResponse(BaseModel):
     model_version: str
     supported_labels: List[str]
     note: str
+    cross_check: dict | None = None
 
 
 class FakeCheckRequest(BaseModel):
@@ -266,7 +278,21 @@ def sentiment(req: SentimentRequest):
 
 @app.post("/predict-resolution", response_model=ResolutionResponse)
 def predict_resolution(req: ResolutionRequest):
-    df = pd.DataFrame([{"category": req.category, "priority": req.priority}])
+    category = req.category
+    # Keep the existing trained resolution artifact usable until it is
+    # retrained; new artifacts use the canonical labels directly.
+    try:
+        encoder = resolution_model.named_steps["encode"]
+        category_encoder = next(
+            transformer for name, transformer, columns in encoder.transformers_
+            if name == "cat" and "category" in columns
+        )
+        known_categories = set(category_encoder.categories_[0].tolist())
+        if category not in known_categories:
+            category = RESOLUTION_LEGACY_CATEGORIES.get(category, category)
+    except (AttributeError, KeyError, StopIteration, IndexError):
+        pass
+    df = pd.DataFrame([{"category": category, "priority": req.priority}])
     hours = float(resolution_model.predict(df)[0])
     hours = max(hours, 1.0)
 
@@ -317,8 +343,78 @@ def cluster_hotspots(req: ClusterRequest):
     return ClusterResponse(clusters=clusters, noise_ids=noise_ids)
 
 
+def cross_check_image_and_complaint(detections, complaint_text, department):
+    """Conservative staff-facing consistency hint; it never validates a report."""
+    if not complaint_text:
+        return None
+
+    # Only civic issue candidates (custom classes or explicit civic heuristics)
+    # are suitable evidence here. Generic COCO objects such as people/cars are
+    # intentionally excluded because they do not establish the reported issue.
+    issue_to_department = {
+        "pothole": "Roads and Footpaths", "pothole_candidate": "Roads and Footpaths",
+        "road_damage": "Roads and Footpaths", "crack": "Roads and Footpaths",
+        "garbage": "Solid Waste and Garbage", "garbage_candidate": "Solid Waste and Garbage",
+        "litter": "Solid Waste and Garbage", "trash": "Solid Waste and Garbage",
+        "waterlogging": "Sewerage and Drainage", "water_logging": "Sewerage and Drainage",
+        "water_logging_candidate": "Sewerage and Drainage", "flooding": "Sewerage and Drainage",
+        "drain": "Sewerage and Drainage", "sewer": "Sewerage and Drainage",
+        "leak": "Water Supply", "water_leak": "Water Supply", "water_pipe": "Water Supply",
+        "streetlight": "Electricity and Streetlights", "street_light": "Electricity and Streetlights",
+        "electric_pole": "Electricity and Streetlights", "traffic_light": "Electricity and Streetlights",
+        "bus": "Public Transport", "bus_stop": "Public Transport",
+    }
+    supported = []
+    for detection in detections:
+        if detection.confidence < 0.35:
+            continue
+        label = detection.label.lower().replace(" ", "_").replace("-", "_")
+        mapped = issue_to_department.get(label)
+        if mapped and (detection.source != "yolov8n-coco" or label in {"traffic_light", "bus"}):
+            supported.append({"label": detection.label, "department": mapped, "confidence": detection.confidence})
+
+    text = complaint_text.lower()
+    text_hints = {
+        "Roads and Footpaths": ["pothole", "road", "footpath", "street"],
+        "Solid Waste and Garbage": ["garbage", "trash", "waste", "litter"],
+        "Water Supply": ["water supply", "water leak", "pipe leak"],
+        "Sewerage and Drainage": ["drain", "sewer", "waterlogging", "flood"],
+        "Electricity and Streetlights": ["electricity", "streetlight", "street light", "power"],
+        "Public Transport": ["bus", "transport", "bus stop"],
+    }
+    inferred = [name for name, terms in text_hints.items() if any(term in text for term in terms)]
+    text_department = inferred[0] if len(inferred) == 1 else None
+    image_departments = sorted({item["department"] for item in supported})
+    expected_department = text_department or (department if department in text_hints else None)
+
+    if not supported:
+        status = "insufficient_evidence"
+        summary = "No reliable civic-issue image candidate was detected; compare the photo and report manually."
+    elif expected_department and expected_department in image_departments:
+        status = "consistent"
+        summary = "A civic-issue image candidate is broadly consistent with the complaint category. Staff should verify the photo."
+    elif expected_department and image_departments:
+        status = "possible_mismatch"
+        summary = "Detected civic-issue candidate(s) may not match the complaint category. This is only a review prompt; verify manually."
+    else:
+        status = "insufficient_evidence"
+        summary = "Image candidates were found, but the complaint category could not be compared confidently. Review manually."
+
+    return {
+        "status": status,
+        "summary": summary,
+        "complaint_department": expected_department,
+        "image_candidates": supported,
+        "method": "candidate-label and complaint-category comparison; not proof of authenticity",
+    }
+
+
 @app.post("/detect-issues", response_model=DetectIssuesResponse)
-async def detect_issues(image: UploadFile = File(...)):
+async def detect_issues(
+    image: UploadFile = File(...),
+    complaint_text: str = Form(""),
+    department: str = Form(""),
+):
     raw = await image.read()
     npbuf = np.frombuffer(raw, np.uint8)
     img_bgr = cv2.imdecode(npbuf, cv2.IMREAD_COLOR)
@@ -330,6 +426,7 @@ async def detect_issues(image: UploadFile = File(...)):
             model_version="yolov8n-coco + opencv-heuristics-v1",
             supported_labels=SUPPORTED_ISSUE_LABELS,
             note="Could not decode this file as an image — no analysis was run.",
+            cross_check=cross_check_image_and_complaint([], complaint_text, department),
         )
 
     h, w = img_bgr.shape[:2]
@@ -366,6 +463,7 @@ async def detect_issues(image: UploadFile = File(...)):
             model_version="civic-yolo-finetuned",
             supported_labels=SUPPORTED_ISSUE_LABELS,
             note="Civic issue classes use the locally trained civic YOLO model. Review every detection before action; model output is not a verified finding.",
+            cross_check=cross_check_image_and_complaint(detections, complaint_text, department),
         )
 
     return DetectIssuesResponse(
@@ -379,6 +477,7 @@ async def detect_issues(image: UploadFile = File(...)):
             "OpenCV heuristics, not a model trained on civic imagery — treat those as rough "
             "hints, not verified findings."
         ),
+        cross_check=cross_check_image_and_complaint(detections, complaint_text, department),
     )
 
 
@@ -392,9 +491,11 @@ def detect_fake(req: FakeCheckRequest):
 def classify(req: ClassifyRequest):
     probabilities = model.predict_proba([req.text])[0]
     classes = model.classes_
-    best_index = probabilities.argmax()
-    category = classes[best_index]
-    confidence = float(probabilities[best_index])
+    # Filter legacy model outputs so retired departments can never be returned.
+    eligible = [(CATEGORY_ALIASES[name], float(prob)) for name, prob in zip(classes, probabilities) if name in CATEGORY_ALIASES]
+    if not eligible:
+        raise HTTPException(status_code=503, detail="Classifier has no configured department classes; retrain the model.")
+    category, confidence = max(eligible, key=lambda item: item[1])
 
     department = CATEGORY_TO_DEPARTMENT.get(category, category)
     priority = predict_priority(req.text, category)

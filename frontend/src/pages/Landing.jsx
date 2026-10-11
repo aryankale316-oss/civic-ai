@@ -95,7 +95,7 @@ export default function Landing() {
             </h1>
 
             <p className="mb-8 max-w-2xl text-lg leading-8 text-white/80">
-              {t('Civic AI takes a citizen complaint about roads, water, electricity, garbage, or safety and uses machine learning to classify it, prioritize it, and get it in front of the right department — with full tracking from submission to resolution.')}
+              {t('Civic AI accepts complaints about roads and footpaths, solid waste, water supply, sewerage and drainage, electricity and streetlights, and public transport. It uses machine learning to classify, prioritize, and route each complaint, with tracking through resolution.')}
             </p>
 
             <div className="flex flex-wrap items-center gap-3">

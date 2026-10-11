@@ -1,50 +1,33 @@
 const express = require('express');
 const pool = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { DEPARTMENTS } = require('../constants/departments');
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-    const result = await pool.query('SELECT id, name FROM departments ORDER BY name');
+    const result = await pool.query('SELECT id, name FROM departments WHERE is_active = true ORDER BY name');
     res.json(result.rows);
 });
 
 router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
     const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
-    if (!name) return res.status(400).json({ error: 'Department name is required' });
-    const duplicate = await pool.query('SELECT id FROM departments WHERE LOWER(name) = LOWER($1)', [name]);
-    if (duplicate.rows.length) return res.status(409).json({ error: 'A department with this name already exists' });
-    const result = await pool.query('INSERT INTO departments (name) VALUES ($1) RETURNING id, name', [name]);
+    if (!DEPARTMENTS.includes(name)) return res.status(400).json({ error: 'Only the six configured departments can be enabled' });
+    const duplicate = await pool.query('SELECT id, is_active FROM departments WHERE LOWER(name) = LOWER($1)', [name]);
+    if (duplicate.rows.length) {
+        const { rows } = await pool.query('UPDATE departments SET is_active = true WHERE id = $1 RETURNING id, name', [duplicate.rows[0].id]);
+        return res.status(200).json(rows[0]);
+    }
+    const result = await pool.query('INSERT INTO departments (name, is_active) VALUES ($1, true) RETURNING id, name', [name]);
     res.status(201).json(result.rows[0]);
 });
 
 router.patch('/:id', requireAuth, requireRole('admin'), async (req, res) => {
-    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
-    if (!name) return res.status(400).json({ error: 'Department name is required' });
-    const duplicate = await pool.query('SELECT id FROM departments WHERE LOWER(name) = LOWER($1) AND id <> $2', [name, req.params.id]);
-    if (duplicate.rows.length) return res.status(409).json({ error: 'A department with this name already exists' });
-    const result = await pool.query('UPDATE departments SET name = $1 WHERE id = $2 RETURNING id, name', [name, req.params.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'Department not found' });
-    res.json(result.rows[0]);
+    return res.status(400).json({ error: 'Department names are fixed to the six configured departments.' });
 });
 
 router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
-    // Never silently orphan active data.  The admin must first reassign staff
-    // and complaints before removing a department.
-    const dependencies = await pool.query(
-        `SELECT
-            (SELECT COUNT(*) FROM complaints WHERE department_id = $1)::int AS complaints,
-            (SELECT COUNT(*) FROM officers WHERE department_id = $1)::int AS officers,
-            (SELECT COUNT(*) FROM users WHERE department_id = $1)::int AS users`,
-        [req.params.id]
-    );
-    const { complaints, officers, users } = dependencies.rows[0];
-    if (complaints || officers || users) {
-        return res.status(409).json({ error: 'Reassign linked complaints, officers, and department admins before deleting this department' });
-    }
-    const result = await pool.query('DELETE FROM departments WHERE id = $1 RETURNING id', [req.params.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'Department not found' });
-    res.status(204).end();
+    return res.status(400).json({ error: 'The six configured departments cannot be deleted. Historical departments are retired by migration.' });
 });
 
 module.exports = router;

@@ -29,8 +29,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "resolution_model.joblib")
 
 CATEGORIES = [
-    "Roads", "Water Supply", "Electricity", "Garbage",
-    "Drainage", "Health", "Transport", "Public Safety",
+    "Roads and Footpaths", "Solid Waste and Garbage", "Water Supply",
+    "Sewerage and Drainage", "Electricity and Streetlights", "Public Transport",
 ]
 PRIORITIES = ["Critical", "High", "Medium", "Low"]
 
@@ -45,14 +45,12 @@ BASELINE_HOURS_BY_PRIORITY = {
 # Rough multiplier capturing that some issue types take structurally longer
 # (road/drainage repair crews) or shorter (garbage pickup, safety response).
 CATEGORY_MULTIPLIER = {
-    "Roads": 1.3,
+    "Roads and Footpaths": 1.3,
     "Water Supply": 1.0,
-    "Electricity": 0.8,
-    "Garbage": 0.4,
-    "Drainage": 1.1,
-    "Health": 0.9,
-    "Transport": 1.0,
-    "Public Safety": 0.6,
+    "Electricity and Streetlights": 0.8,
+    "Solid Waste and Garbage": 0.4,
+    "Sewerage and Drainage": 1.1,
+    "Public Transport": 1.0,
 }
 
 SAMPLES_PER_COMBINATION = 200

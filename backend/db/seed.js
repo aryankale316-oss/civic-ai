@@ -2,16 +2,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }
 const bcrypt = require('bcryptjs');
 const pool = require('../src/config/db');
 
-const DEPARTMENTS = [
-    'Roads',
-    'Water Supply',
-    'Electricity',
-    'Garbage',
-    'Drainage',
-    'Health',
-    'Transport',
-    'Public Safety',
-];
+const { DEPARTMENTS } = require('../src/constants/departments');
 
 // Turns "Water Supply" into "water.supply" for a predictable seeded login.
 function slugify(name) {
@@ -22,13 +13,14 @@ async function seed() {
     const departmentIds = {};
     for (const name of DEPARTMENTS) {
         const { rows } = await pool.query(
-            `INSERT INTO departments (name) VALUES ($1)
-             ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+            `INSERT INTO departments (name, is_active) VALUES ($1, true)
+             ON CONFLICT (name) DO UPDATE SET is_active = true
              RETURNING id`,
             [name]
         );
         departmentIds[name] = rows[0].id;
     }
+    await pool.query('UPDATE departments SET is_active = name = ANY($1::text[])', [DEPARTMENTS]);
     console.log('Departments seeded.');
 
     const adminEmail = process.env.ADMIN_EMAIL;

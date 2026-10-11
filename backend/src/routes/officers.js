@@ -39,12 +39,12 @@ router.use(requireAuth, requireAnyRole(['admin', 'dept_admin']));
 router.get('/', async (req, res) => {
     if (req.user.role === 'dept_admin') {
         const { rows } = await pool.query(
-            `${OFFICER_LIST_SELECT.replace('GROUP BY', 'WHERE o.department_id = $1 GROUP BY')}`,
+            `${OFFICER_LIST_SELECT.replace('GROUP BY', 'WHERE o.department_id = $1 AND d.is_active = true GROUP BY')}`,
             [req.user.department_id]
         );
         return res.json(rows.map(withPerformanceScore));
     }
-    const { rows } = await pool.query(OFFICER_LIST_SELECT);
+    const { rows } = await pool.query(OFFICER_LIST_SELECT.replace('GROUP BY', 'WHERE d.is_active = true GROUP BY'));
     res.json(rows.map(withPerformanceScore));
 });
 
@@ -53,6 +53,8 @@ router.post('/', requireRole('admin'), async (req, res) => {
     if (!name || !email) {
         return res.status(400).json({ error: 'name and email are required' });
     }
+    const department = await pool.query('SELECT id FROM departments WHERE id = $1 AND is_active = true', [department_id]);
+    if (!department.rows.length) return res.status(400).json({ error: 'Choose one of the active departments' });
 
     const existing = await pool.query('SELECT id FROM officers WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
@@ -90,6 +92,10 @@ router.get('/:id', async (req, res) => {
 
 router.patch('/:id', requireRole('admin'), async (req, res) => {
     const { name, phone, department_id, status } = req.body;
+    if (department_id != null) {
+        const department = await pool.query('SELECT id FROM departments WHERE id = $1 AND is_active = true', [department_id]);
+        if (!department.rows.length) return res.status(400).json({ error: 'Choose one of the active departments' });
+    }
     if (status && !['active', 'inactive'].includes(status)) {
         return res.status(400).json({ error: 'status must be active or inactive' });
     }

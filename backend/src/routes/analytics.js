@@ -17,6 +17,7 @@ router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
             SELECT COALESCE(d.name, 'Unassigned') AS department, count(*)::int AS count
             FROM complaints c
             LEFT JOIN departments d ON d.id = c.department_id
+            WHERE d.is_active = true OR c.department_id IS NULL
             GROUP BY 1
             ORDER BY count DESC
         `),
@@ -36,8 +37,16 @@ router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
             WHERE resolved_at IS NOT NULL
         `),
         pool.query(`
-            SELECT COALESCE(ai_category, 'Unclassified') AS category, count(*)::int AS count
+            SELECT CASE ai_category
+                       WHEN 'Roads' THEN 'Roads and Footpaths'
+                       WHEN 'Garbage' THEN 'Solid Waste and Garbage'
+                       WHEN 'Drainage' THEN 'Sewerage and Drainage'
+                       WHEN 'Electricity' THEN 'Electricity and Streetlights'
+                       WHEN 'Transport' THEN 'Public Transport'
+                       ELSE COALESCE(ai_category, 'Unclassified')
+                   END AS category, count(*)::int AS count
             FROM complaints
+            WHERE ai_category IS NULL OR ai_category NOT IN ('Health', 'Public Safety')
             GROUP BY 1
             ORDER BY count DESC
             LIMIT 5
@@ -67,6 +76,7 @@ router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
             FROM feedback f
             JOIN complaints c ON c.id = f.complaint_id
             LEFT JOIN departments d ON d.id = c.department_id
+            WHERE d.is_active = true OR c.department_id IS NULL
             GROUP BY d.name
             ORDER BY avg_rating DESC
         `),
@@ -84,6 +94,7 @@ router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
             LEFT JOIN complaints c ON c.department_id = d.id
             LEFT JOIN officers o ON o.department_id = d.id
             LEFT JOIN feedback f ON f.complaint_id = c.id
+            WHERE d.is_active = true
             GROUP BY d.id, d.name
             ORDER BY d.name
         `),
