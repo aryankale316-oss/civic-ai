@@ -39,6 +39,12 @@ CREATE TABLE IF NOT EXISTS complaints (
     longitude DOUBLE PRECISION,
     ai_category TEXT,
     department_id INTEGER REFERENCES departments(id),
+    assignment_source TEXT NOT NULL DEFAULT 'text',
+    image_suggested_department_id INTEGER REFERENCES departments(id),
+    image_assignment_score REAL,
+    image_assignment_review_required BOOLEAN NOT NULL DEFAULT false,
+    image_assignment_reviewed_by INTEGER REFERENCES users(id),
+    image_assignment_reviewed_at TIMESTAMPTZ,
     ai_priority TEXT CHECK (ai_priority IN ('Low', 'Medium', 'High', 'Critical')),
     ai_confidence REAL,
     status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted', 'in_progress', 'resolved', 'rejected')),
@@ -66,6 +72,12 @@ ALTER TABLE complaints ADD COLUMN IF NOT EXISTS sentiment_score REAL;
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS source_language TEXT NOT NULL DEFAULT 'en';
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS ai_translation_used BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE complaints ADD COLUMN IF NOT EXISTS ai_translation_note TEXT;
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS assignment_source TEXT NOT NULL DEFAULT 'text';
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS image_suggested_department_id INTEGER REFERENCES departments(id);
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS image_assignment_score REAL;
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS image_assignment_review_required BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS image_assignment_reviewed_by INTEGER REFERENCES users(id);
+ALTER TABLE complaints ADD COLUMN IF NOT EXISTS image_assignment_reviewed_at TIMESTAMPTZ;
 
 -- Sentence embedding (all-MiniLM-L6-v2, 384 dims, pre-normalized) for each
 -- complaint's title+description, used for duplicate detection via cosine

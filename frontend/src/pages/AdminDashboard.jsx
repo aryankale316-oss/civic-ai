@@ -192,6 +192,8 @@ export default function AdminDashboard() {
               ...c,
               department_id: department?.id ?? null,
               department_name: department?.name ?? null,
+              assignment_source: 'staff',
+              image_assignment_review_required: false,
             }
           : c
       )
@@ -222,38 +224,34 @@ export default function AdminDashboard() {
     try {
       await apiClient.patch(`/complaints/${id}/status`, { status });
       toast.success('Status updated');
-    } catch {
+    } catch (err) {
       setComplaints(previous);
-      toast.error('Failed to update status');
+      toast.error(err.response?.data?.error || 'Failed to update status');
     }
   }
 
   async function handleAssign(id, officerId) {
-    const previous = complaints;
-
-    const officer = officers.find((o) => o.id === Number(officerId));
-
-    setComplaints((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              assigned_officer_id: officer?.id ?? null,
-              assigned_officer_name: officer?.name ?? null,
-            }
-          : c
-      )
-    );
-
+    const officer = officers.find((o) => o.id === Number(officerId) && o.status === 'active');
     try {
-      await apiClient.patch(`/complaints/${id}/assign`, {
+      const { data } = await apiClient.patch(`/complaints/${id}/assign`, {
         officer_id: officerId || null,
       });
-
+      setComplaints((prev) => prev.map((c) => c.id === id ? { ...c, ...data } : c));
+      setSelected((prev) => prev?.id === id ? { ...prev, ...data } : prev);
       toast.success(officer ? `Assigned to ${officer.name}` : 'Unassigned');
-    } catch {
-      setComplaints(previous);
-      toast.error('Failed to assign officer');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to assign officer');
+    }
+  }
+
+  async function handleConfirmImageAssignment(id) {
+    try {
+      const { data } = await apiClient.patch(`/complaints/${id}/confirm-image-assignment`);
+      setComplaints((prev) => prev.map((item) => item.id === id ? { ...item, ...data } : item));
+      setSelected((prev) => prev?.id === id ? { ...prev, ...data } : prev);
+      toast.success('Photo reviewed. You can now assign an officer or progress the complaint.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not confirm the image-based assignment');
     }
   }
 
@@ -518,15 +516,17 @@ export default function AdminDashboard() {
                     }
                     className={`${SELECT_CLASS} max-w-40`}
                     title={
-                      c.ai_confidence != null
-                        ? `AI-routed at ${Math.round(
-                            c.ai_confidence * 100
-                          )}% confidence`
-                        : undefined
+                      c.assignment_source === 'image'
+                        ? t('Experimental photo assignment; verify the photo before progressing.')
+                      : c.assignment_source === 'text'
+                        ? t('Text-based department suggestion; staff review')
+                        : c.ai_category
+                        ? `${t('Reassigned by staff')} (${t('AI suggested')}: ${c.ai_category})`
+                        : t('Department assignment')
                     }
                   >
                     <option value="" disabled>
-                      Unassigned
+                      {t('Unassigned')}
                     </option>
 
                     {allDepartments.map((d) => (
@@ -536,10 +536,48 @@ export default function AdminDashboard() {
                     ))}
                   </select>
 
-                  {c.ai_confidence != null && (
-                    <span className="ml-2 inline-flex rounded-full border border-ai/25 bg-ai-soft px-2 py-1 text-[11px] font-semibold text-ai dark:bg-ai/20">
-                      AI {Math.round(c.ai_confidence * 100)}%
+                  <p className="mt-1 text-[11px] font-medium text-ink-soft dark:text-paper-muted">
+                    {t('Assignment source')}: {t(
+                      c.assignment_source === 'image'
+                        ? 'Image model'
+                        : c.assignment_source === 'staff'
+                          ? 'Staff'
+                          : c.department_id && c.ai_category
+                            ? 'Complaint text model'
+                            : 'Unassigned for review'
+                    )}
+                  </p>
+                  {c.assignment_source === 'image' ? (
+                    <span className="ml-2 inline-flex items-center rounded-full border border-amber-400 bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-950 dark:bg-amber-900/40 dark:text-amber-100">
+                      {c.image_assignment_review_required ? t('Image-routed · verify photo') : t('Image routing reviewed')}
                     </span>
+                  ) : c.assignment_source === 'staff' ? (
+                    <span className="ml-2 inline-flex items-center rounded-full border border-paper-line bg-paper-warm px-2 py-0.5 text-[11px] font-medium text-ink-soft dark:border-board-line dark:bg-board">
+                      {t('Staff Reassigned')}
+                    </span>
+                  ) : c.assignment_source === 'text' && c.department_id ? (
+                    <span
+                      className="ml-2 inline-flex items-center rounded-full border border-ai/25 bg-ai-soft px-2 py-0.5 text-[11px] font-medium text-ai dark:bg-ai/20"
+                      title={t('Department selected using complaint title and description')}
+                    >
+                      {t('Text-routed · staff review')}
+                    </span>
+                  ) : c.assignment_source === 'unassigned' || !c.department_id ? (
+                    <span className="ml-2 inline-flex items-center rounded-full border border-paper-line bg-paper-warm px-2 py-0.5 text-[11px] font-medium text-ink-soft dark:border-board-line dark:bg-board">
+                      {t('Unassigned · manual review')}
+                    </span>
+                  ) : null}
+                  {c.image_assignment_review_required && (
+                    <div className="mt-1 max-w-48 text-[10px] leading-4 text-amber-800 dark:text-amber-200">
+                      <p>{t('Review photo and report before assigning an officer or progressing.')}</p>
+                      <button
+                        type="button"
+                        className="mt-1 rounded border border-amber-600 px-2 py-1 font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/60"
+                        onClick={() => handleConfirmImageAssignment(c.id)}
+                      >
+                        {t('I reviewed the photo')}
+                      </button>
+                    </div>
                   )}
                 </td>
 
@@ -570,19 +608,26 @@ export default function AdminDashboard() {
                 >
                   <select
                     value={c.assigned_officer_id || ''}
+                    disabled={c.image_assignment_review_required}
                     onChange={(e) =>
                       handleAssign(c.id, e.target.value)
                     }
                     className={`${SELECT_CLASS} max-w-36`}
+                    title={c.image_assignment_review_required ? t('Review the photo before assigning an officer.') : undefined}
                   >
                     <option value="">{t('Unassigned')}</option>
 
-                    {officers.map((o) => (
+                    {officers.filter((o) => o.status === 'active' && Number(o.department_id) === Number(c.department_id)).map((o) => (
                       <option key={o.id} value={o.id}>
                         {o.name}
                       </option>
                     ))}
                   </select>
+                  {c.department_id && officers.every((o) => o.status !== 'active' || Number(o.department_id) !== Number(c.department_id)) && (
+                    <p className="mt-1 max-w-40 text-[10px] leading-4 text-amber-800 dark:text-amber-200">
+                      {t('No active officer is registered for this department. Ask an administrator to add one.')}
+                    </p>
+                  )}
                 </td>
 
                 <td className="px-4 py-3">
@@ -730,31 +775,40 @@ export default function AdminDashboard() {
                   Assign officer
                 </label>
 
+                {selected.image_assignment_review_required && (
+                  <div className="mt-2 rounded border border-amber-400/60 bg-amber-950/30 p-3 text-xs text-amber-100">
+                    <p>{t('Review the photo and complaint before assigning an officer.')}</p>
+                    <button
+                      type="button"
+                      className="mt-2 rounded border border-amber-300 px-2 py-1 font-semibold"
+                      onClick={() => handleConfirmImageAssignment(selected.id)}
+                    >
+                      {t('I reviewed the photo')}
+                    </button>
+                  </div>
+                )}
+
                 <select
                   value={selected.assigned_officer_id || ''}
+                  disabled={selected.image_assignment_review_required}
                   onChange={(e) => {
                     handleAssign(selected.id, e.target.value);
-
-                    const officer = officers.find(
-                      (o) => o.id === Number(e.target.value)
-                    );
-
-                    setSelected({
-                      ...selected,
-                      assigned_officer_id: officer?.id,
-                      assigned_officer_name: officer?.name,
-                    });
                   }}
                   className="mt-2 w-full rounded-lg border border-[#263750] bg-[#0b1424] p-3 text-sm"
                 >
                   <option value="">{t('Unassigned')}</option>
 
-                  {officers.map((o) => (
+                  {officers.filter((o) => o.status === 'active' && Number(o.department_id) === Number(selected.department_id)).map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.name}
                     </option>
                   ))}
                 </select>
+                {selected.department_id && officers.every((o) => o.status !== 'active' || Number(o.department_id) !== Number(selected.department_id)) && (
+                  <p className="mt-1 text-xs text-amber-200">
+                    {t('No active officer is registered for this department. Ask an administrator to add one.')}
+                  </p>
+                )}
               </section>
 
               <section className="rounded-xl border border-[#263750] p-4">

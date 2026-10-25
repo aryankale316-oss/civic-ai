@@ -53,6 +53,24 @@ async function analyzeImage(filePath, complaint) {
     return data;
 }
 
+function getImageDepartmentCandidate(analysis) {
+    if (analysis?.model_version !== 'civic-yolo-finetuned') return null;
+    const allowedDepartments = new Set([
+        'Roads and Footpaths',
+        'Solid Waste and Garbage',
+        'Water Supply',
+        'Sewerage and Drainage',
+        'Electricity and Streetlights',
+    ]);
+    const best = (analysis.detections || [])
+        .filter((item) => item.source === 'civic-yolo-finetuned'
+            && allowedDepartments.has(item.label)
+            && Number.isFinite(item.confidence)
+            && item.confidence >= 0.35)
+        .sort((a, b) => b.confidence - a.confidence)[0];
+    return best ? { departmentName: best.label, score: best.confidence } : null;
+}
+
 async function moderateText(text) {
     const { data } = await axios.post(`${process.env.AI_SERVICE_URL}/moderate`, { text }, { timeout: 10000 });
     return data;
@@ -173,6 +191,9 @@ const IMAGE_COLUMNS = `id, complaint_id, file_path, original_name, mime_type, si
 
 const COMPLAINT_SELECT = `
     SELECT c.id, c.title, c.description, c.location_text, c.latitude, c.longitude, c.ai_category,
+           c.assignment_source, c.image_suggested_department_id, image_department.name AS image_suggested_department_name,
+           c.image_assignment_score, c.image_assignment_review_required,
+           c.image_assignment_reviewed_by, c.image_assignment_reviewed_at,
            c.ai_priority, c.ai_confidence, c.sentiment, c.sentiment_score,
            c.source_language, c.ai_translation_used, c.ai_translation_note,
            c.estimated_resolution_hours, c.estimated_resolution_label, c.status, c.created_at, c.updated_at, c.resolved_at,
@@ -184,6 +205,7 @@ const COMPLAINT_SELECT = `
     FROM complaints c
     JOIN users u ON u.id = c.user_id
     LEFT JOIN departments d ON d.id = c.department_id
+    LEFT JOIN departments image_department ON image_department.id = c.image_suggested_department_id
     LEFT JOIN officers o ON o.id = c.assigned_officer_id
     LEFT JOIN feedback f ON f.complaint_id = c.id
 `;
@@ -218,11 +240,14 @@ router.post('/', requireAuth, async (req, res) => {
 
     const [aiResult, sentimentResult, moderationResult, fakeResult] = await Promise.all([
         axios
-            .post(`${process.env.AI_SERVICE_URL}/classify`, { text: analysisText })
-            .then((r) => r.data)
+            .post(`${process.env.AI_SERVICE_URL}/classify`, { text: combinedText })
+            .then((r) => {
+                console.log(`[Backend] Classified complaint using model='${r.data.model_version || 'unknown'}': category='${r.data.category}', department='${r.data.department}'`);
+                return r.data;
+            })
             .catch((err) => {
-                console.error('AI classification call failed, falling back to defaults:', err.message);
-                return { category: null, department: null, priority: 'Medium', confidence: 0 };
+                console.error('[Backend] AI classification call failed, falling back to unassigned defaults:', err.message);
+                return { category: null, department: null, priority: 'Medium', confidence: null, is_suggestion: false, model_version: 'backend-fallback-network-error' };
             }),
         textPreparation.source_language === 'hi'
             ? Promise.resolve({ sentiment: null, score: null })
@@ -255,7 +280,7 @@ router.post('/', requireAuth, async (req, res) => {
     });
 
     const [deptRow, resolutionResult] = await Promise.all([
-        aiResult.department && textPreparation.source_language !== 'hi'
+        aiResult.department
             ? pool.query('SELECT id FROM departments WHERE name = $1 AND is_active = true', [aiResult.department])
             : Promise.resolve({ rows: [] }),
         textPreparation.source_language === 'hi'
@@ -275,8 +300,8 @@ router.post('/', requireAuth, async (req, res) => {
 
     const insertResult = await pool.query(
         `INSERT INTO complaints
-            (user_id, title, description, location_text, latitude, longitude, ai_category, department_id, ai_priority, ai_confidence, sentiment, sentiment_score, source_language, ai_translation_used, ai_translation_note, estimated_resolution_hours, estimated_resolution_label, is_profane, spam_score, spam_signals, fake_score, fake_signals, is_likely_fake)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+            (user_id, title, description, location_text, latitude, longitude, ai_category, department_id, assignment_source, ai_priority, ai_confidence, sentiment, sentiment_score, source_language, ai_translation_used, ai_translation_note, estimated_resolution_hours, estimated_resolution_label, is_profane, spam_score, spam_signals, fake_score, fake_signals, is_likely_fake)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
          RETURNING id, status, created_at`,
         [
             req.user.id,
@@ -287,8 +312,9 @@ router.post('/', requireAuth, async (req, res) => {
             lng,
             aiResult.category,
             departmentId,
+            departmentId == null ? 'unassigned' : 'text',
             aiResult.priority,
-            textPreparation.source_language === 'hi' ? null : aiResult.confidence,
+            aiResult.confidence != null ? aiResult.confidence : null,
             sentimentResult.sentiment,
             sentimentResult.score,
             textPreparation.source_language || 'en',
@@ -370,15 +396,15 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     try {
-        await notifyDeptAdmins({
-            departmentId,
-            complaintId,
-            type: 'new_complaint',
-            title: 'New complaint received',
-            message: textPreparation.source_language === 'hi'
-                ? `Hindi complaint received; AI category/priority are experimental and require staff review before department routing: ${title}`
-                : `${title} — ${aiResult.category || 'Uncategorized'} (${aiResult.priority} priority, routed by AI at ${Math.round((aiResult.confidence || 0) * 100)}% confidence)`,
-        });
+        if (departmentId != null) {
+            await notifyDeptAdmins({
+                departmentId,
+                complaintId,
+                type: 'new_complaint',
+                title: 'New complaint received',
+                message: `${title} — ${aiResult.category || 'Unassigned'} (${aiResult.priority} priority, AI-routed, awaiting staff review)`,
+            });
+        }
     } catch (err) {
         console.error('Department admin notification failed:', err.message);
     }
@@ -482,7 +508,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 async function loadComplaintForOwner(req, res) {
     const { rows } = await pool.query(
-        `SELECT c.id, c.user_id, c.title, c.description, d.name AS department_name
+        `SELECT c.id, c.user_id, c.title, c.description, c.department_id, c.assignment_source, d.name AS department_name
          FROM complaints c LEFT JOIN departments d ON d.id = c.department_id WHERE c.id = $1`,
         [req.params.id]
     );
@@ -511,6 +537,7 @@ router.post('/:id/images', requireAuth, upload.array('images', 5), async (req, r
     }
 
     const inserted = [];
+    let bestImageDepartment = null;
     for (const file of req.files) {
         const { rows } = await pool.query(
             `INSERT INTO complaint_images (complaint_id, file_path, original_name, mime_type, size_bytes)
@@ -522,6 +549,10 @@ router.post('/:id/images', requireAuth, upload.array('images', 5), async (req, r
 
         try {
             const analysis = await analyzeImage(path.join(UPLOADS_DIR, file.filename), complaint);
+            const candidate = getImageDepartmentCandidate(analysis);
+            if (candidate && (!bestImageDepartment || candidate.score > bestImageDepartment.score)) {
+                bestImageDepartment = candidate;
+            }
             const { rows: updatedRows } = await pool.query(
                 `UPDATE complaint_images
                  SET detected_objects = $1, analysis_is_placeholder = $2, analysis_note = $3, image_cross_check = $4, analyzed_at = now()
@@ -537,7 +568,55 @@ router.post('/:id/images', requireAuth, upload.array('images', 5), async (req, r
         inserted.push(imageRow);
     }
 
-    res.status(201).json(inserted);
+    if (bestImageDepartment) {
+        let imageAssignmentSaved = false;
+        let imageDepartmentId = null;
+        try {
+            const { rows: departmentRows } = await pool.query(
+                'SELECT id FROM departments WHERE name = $1 AND is_active = true',
+                [bestImageDepartment.departmentName]
+            );
+            imageDepartmentId = departmentRows[0]?.id;
+            if (imageDepartmentId) {
+                const { rows: routedRows } = await pool.query(
+                    `UPDATE complaints
+                     SET department_id = $1, assignment_source = 'image',
+                         image_suggested_department_id = $1, image_assignment_score = $2,
+                         image_assignment_review_required = true,
+                         image_assignment_reviewed_by = NULL, image_assignment_reviewed_at = NULL,
+                         updated_at = now()
+                     WHERE id = $3 AND assignment_source <> 'staff'
+                     RETURNING id`,
+                    [imageDepartmentId, bestImageDepartment.score, complaint.id]
+                );
+                imageAssignmentSaved = routedRows.length > 0;
+            }
+        } catch (err) {
+            console.error('Image-based department assignment failed; existing assignment retained:', err.message);
+        }
+        if (imageAssignmentSaved) {
+            const reviewMessage = `"${complaint.title}" has an experimental image-based department suggestion: ${bestImageDepartment.departmentName}. Review the photo and complaint before assigning an officer or progressing it.`;
+            await Promise.all([
+                notifyDeptAdmins({
+                    departmentId: imageDepartmentId,
+                    complaintId: complaint.id,
+                    type: 'image_assignment_review',
+                    title: 'Image-based department suggestion needs review',
+                    message: reviewMessage,
+                }),
+                createNotification({
+                    userId: complaint.user_id,
+                    complaintId: complaint.id,
+                    type: 'image_assignment_review',
+                    title: 'Photo analysis completed',
+                    message: `The photo suggested ${bestImageDepartment.departmentName}. This is an experimental suggestion; staff will review it with your complaint.`,
+                }),
+            ]).catch((err) => console.error('Image-assignment notifications failed:', err.message));
+        }
+    }
+
+    const { rows: currentRows } = await pool.query(`${COMPLAINT_SELECT} WHERE c.id = $1`, [complaint.id]);
+    res.status(201).json({ images: inserted, complaint: currentRows[0] || null });
 });
 
 router.delete('/:id/images/:imageId', requireAuth, async (req, res) => {
@@ -566,7 +645,7 @@ const VALID_STATUSES = ['submitted', 'in_progress', 'resolved', 'rejected'];
 // current department_id/user_id for the caller to act on, or null after
 // writing an error response.
 async function loadComplaintForStaffAccess(req, res) {
-    const { rows } = await pool.query('SELECT id, user_id, department_id FROM complaints WHERE id = $1', [
+    const { rows } = await pool.query('SELECT id, user_id, department_id, image_assignment_review_required FROM complaints WHERE id = $1', [
         req.params.id,
     ]);
     const complaint = rows[0];
@@ -589,6 +668,9 @@ router.patch('/:id/status', requireAuth, requireAnyRole(['admin', 'dept_admin'])
 
     const target = await loadComplaintForStaffAccess(req, res);
     if (!target) return;
+    if (target.image_assignment_review_required && ['in_progress', 'resolved'].includes(status)) {
+        return res.status(409).json({ error: 'Verify or reassign the image-based department suggestion before progressing this complaint.' });
+    }
 
     const result = await pool.query(
         `UPDATE complaints
@@ -626,6 +708,9 @@ router.patch('/:id/assign', requireAuth, requireAnyRole(['admin', 'dept_admin'])
 
     const target = await loadComplaintForStaffAccess(req, res);
     if (!target) return;
+    if (target.image_assignment_review_required && officer_id != null) {
+        return res.status(409).json({ error: 'Verify or reassign the image-based department suggestion before assigning an officer.' });
+    }
 
     if (officer_id != null) {
         const officerRow = await pool.query(
@@ -635,7 +720,7 @@ router.patch('/:id/assign', requireAuth, requireAnyRole(['admin', 'dept_admin'])
             [officer_id, target.department_id]
         );
         if (officerRow.rows.length === 0) {
-            return res.status(400).json({ error: 'Officer not found' });
+            return res.status(400).json({ error: 'Choose an active officer assigned to this complaint’s department.' });
         }
     }
 
@@ -695,8 +780,15 @@ router.patch('/:id/reassign-department', requireAuth, requireAnyRole(['admin', '
     }
 
     const result = await pool.query(
-        'UPDATE complaints SET department_id = $1, updated_at = now() WHERE id = $2 RETURNING id',
-        [department_id, req.params.id]
+        `UPDATE complaints
+         SET department_id = $1,
+             assigned_officer_id = CASE WHEN department_id IS DISTINCT FROM $1 THEN NULL ELSE assigned_officer_id END,
+             assignment_source = 'staff',
+             image_assignment_reviewed_by = CASE WHEN image_assignment_review_required THEN $2 ELSE image_assignment_reviewed_by END,
+             image_assignment_reviewed_at = CASE WHEN image_assignment_review_required THEN now() ELSE image_assignment_reviewed_at END,
+             image_assignment_review_required = false, updated_at = now()
+         WHERE id = $3 RETURNING id`,
+        [department_id, req.user.id, req.params.id]
     );
     if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Complaint not found' });
@@ -718,6 +810,25 @@ router.patch('/:id/reassign-department', requireAuth, requireAnyRole(['admin', '
     }
 
     res.json(complaint);
+});
+
+router.patch('/:id/confirm-image-assignment', requireAuth, requireAnyRole(['admin', 'dept_admin']), async (req, res) => {
+    const target = await loadComplaintForStaffAccess(req, res);
+    if (!target) return;
+    if (!target.image_assignment_review_required) {
+        return res.status(409).json({ error: 'There is no pending image-based assignment to confirm.' });
+    }
+
+    await pool.query(
+        `UPDATE complaints
+         SET image_assignment_review_required = false,
+             image_assignment_reviewed_by = $1, image_assignment_reviewed_at = now(),
+             updated_at = now()
+         WHERE id = $2`,
+        [req.user.id, req.params.id]
+    );
+    const { rows } = await pool.query(`${COMPLAINT_SELECT} WHERE c.id = $1`, [req.params.id]);
+    res.json(rows[0]);
 });
 
 router.post('/:id/feedback', requireAuth, async (req, res) => {

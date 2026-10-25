@@ -1,0 +1,246 @@
+﻿{
+  "dataset_path": "c:\\Users\\rushi\\civic-ai\\text_classification\\civic_complaints_cleaned.csv",
+  "classes": [
+    "Electricity and Streetlights",
+    "Public Transport",
+    "Roads and Footpaths",
+    "Sewerage and Drainage",
+    "Solid Waste and Garbage",
+    "Water Supply"
+  ],
+  "split_counts": {
+    "train": 4201,
+    "validation": 885,
+    "test": 914,
+    "test_en": 416,
+    "test_hi": 498
+  },
+  "validation_comparison": {
+    "LogReg_WordChar": {
+      "overall_accuracy": 0.9502824858757062,
+      "macro_precision": 0.9506257493784482,
+      "macro_recall": 0.950532336656056,
+      "macro_f1": 0.9499920375647516,
+      "weighted_f1": 0.9505047620982869,
+      "english_accuracy": 0.943069306930693,
+      "english_macro_f1": 0.9417832256650406,
+      "hindi_accuracy": 0.9563409563409564,
+      "hindi_macro_f1": 0.9566081509617271
+    },
+    "LinearSVC_WordChar": {
+      "overall_accuracy": 0.9672316384180791,
+      "macro_precision": 0.9679004755324292,
+      "macro_recall": 0.9663882782070995,
+      "macro_f1": 0.9668156354027699,
+      "weighted_f1": 0.9673487363672139,
+      "english_accuracy": 0.9603960396039604,
+      "english_macro_f1": 0.9597370058830422,
+      "hindi_accuracy": 0.972972972972973,
+      "hindi_macro_f1": 0.972990687632436
+    }
+  },
+  "selected_model": "LinearSVC_WordChar",
+  "selected_model_description": "Linear Support Vector Classifier with Word (1,2) + Char_WB (3,5) TF-IDF (C=1.0)",
+  "held_out_test_results": {
+    "overall": {
+      "accuracy": 0.9595185995623632,
+      "macro_precision": 0.9564926093065687,
+      "macro_recall": 0.9608346715834969,
+      "macro_f1": 0.9581150800760354,
+      "weighted_f1": 0.9594262407182796
+    },
+    "english": {
+      "support": 416,
+      "accuracy": 0.9831730769230769,
+      "macro_precision": 0.9840158045977012,
+      "macro_recall": 0.9819973932877158,
+      "macro_f1": 0.9825764933404084,
+      "weighted_f1": 0.9830398970600803,
+      "per_class": {
+        "Electricity and Streetlights": {
+          "precision": 1.0,
+          "recall": 0.967741935483871,
+          "f1_score": 0.9836065573770492,
+          "support": 62
+        },
+        "Public Transport": {
+          "precision": 0.9583333333333334,
+          "recall": 1.0,
+          "f1_score": 0.9787234042553191,
+          "support": 69
+        },
+        "Roads and Footpaths": {
+          "precision": 0.96875,
+          "recall": 1.0,
+          "f1_score": 0.9841269841269841,
+          "support": 62
+        },
+        "Sewerage and Drainage": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "support": 72
+        },
+        "Solid Waste and Garbage": {
+          "precision": 1.0,
+          "recall": 0.9242424242424242,
+          "f1_score": 0.9606299212598425,
+          "support": 66
+        },
+        "Water Supply": {
+          "precision": 0.9770114942528736,
+          "recall": 1.0,
+          "f1_score": 0.9883720930232558,
+          "support": 85
+        }
+      }
+    },
+    "hindi": {
+      "support": 498,
+      "accuracy": 0.9397590361445783,
+      "macro_precision": 0.9322002807821984,
+      "macro_recall": 0.9419102830727456,
+      "macro_f1": 0.9360168832731613,
+      "weighted_f1": 0.940095847123372,
+      "per_class": {
+        "Electricity and Streetlights": {
+          "precision": 0.9367088607594937,
+          "recall": 1.0,
+          "f1_score": 0.9673202614379085,
+          "support": 74
+        },
+        "Public Transport": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "support": 77
+        },
+        "Roads and Footpaths": {
+          "precision": 0.7833333333333333,
+          "recall": 0.8867924528301887,
+          "f1_score": 0.831858407079646,
+          "support": 53
+        },
+        "Sewerage and Drainage": {
+          "precision": 0.96,
+          "recall": 0.9320388349514563,
+          "f1_score": 0.9458128078817734,
+          "support": 103
+        },
+        "Solid Waste and Garbage": {
+          "precision": 0.9484536082474226,
+          "recall": 0.8679245283018868,
+          "f1_score": 0.9064039408866995,
+          "support": 106
+        },
+        "Water Supply": {
+          "precision": 0.9647058823529412,
+          "recall": 0.9647058823529412,
+          "f1_score": 0.9647058823529412,
+          "support": 85
+        }
+      }
+    },
+    "per_class_overall": {
+      "Electricity and Streetlights": {
+        "precision": 0.9640287769784173,
+        "recall": 0.9852941176470589,
+        "f1_score": 0.9745454545454545,
+        "support": 136
+      },
+      "Public Transport": {
+        "precision": 0.9798657718120806,
+        "recall": 1.0,
+        "f1_score": 0.9898305084745763,
+        "support": 146
+      },
+      "Roads and Footpaths": {
+        "precision": 0.8790322580645161,
+        "recall": 0.9478260869565217,
+        "f1_score": 0.9121338912133892,
+        "support": 115
+      },
+      "Sewerage and Drainage": {
+        "precision": 0.9767441860465116,
+        "recall": 0.96,
+        "f1_score": 0.968299711815562,
+        "support": 175
+      },
+      "Solid Waste and Garbage": {
+        "precision": 0.9683544303797469,
+        "recall": 0.8895348837209303,
+        "f1_score": 0.9272727272727272,
+        "support": 172
+      },
+      "Water Supply": {
+        "precision": 0.9709302325581395,
+        "recall": 0.9823529411764705,
+        "f1_score": 0.9766081871345029,
+        "support": 170
+      }
+    }
+  },
+  "misclassifications_count": 37,
+  "top_confusion_pairs": [
+    {
+      "department_label": "Solid Waste and Garbage",
+      "predicted_label": "Roads and Footpaths",
+      "language": "hi",
+      "count": 11
+    },
+    {
+      "department_label": "Sewerage and Drainage",
+      "predicted_label": "Solid Waste and Garbage",
+      "language": "hi",
+      "count": 5
+    },
+    {
+      "department_label": "Roads and Footpaths",
+      "predicted_label": "Electricity and Streetlights",
+      "language": "hi",
+      "count": 4
+    },
+    {
+      "department_label": "Solid Waste and Garbage",
+      "predicted_label": "Sewerage and Drainage",
+      "language": "hi",
+      "count": 3
+    },
+    {
+      "department_label": "Solid Waste and Garbage",
+      "predicted_label": "Public Transport",
+      "language": "en",
+      "count": 3
+    },
+    {
+      "department_label": "Solid Waste and Garbage",
+      "predicted_label": "Roads and Footpaths",
+      "language": "en",
+      "count": 2
+    },
+    {
+      "department_label": "Electricity and Streetlights",
+      "predicted_label": "Water Supply",
+      "language": "en",
+      "count": 2
+    },
+    {
+      "department_label": "Sewerage and Drainage",
+      "predicted_label": "Water Supply",
+      "language": "hi",
+      "count": 2
+    },
+    {
+      "department_label": "Water Supply",
+      "predicted_label": "Roads and Footpaths",
+      "language": "hi",
+      "count": 2
+    },
+    {
+      "department_label": "Roads and Footpaths",
+      "predicted_label": "Sewerage and Drainage",
+      "language": "hi",
+      "count": 1
+    }
+  ]
+}

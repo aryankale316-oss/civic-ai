@@ -15,20 +15,18 @@ async function createNotification({ userId, complaintId, type, title, message })
         [userId, complaintId || null, type, title, message]
     );
     const notification = rows[0];
-    const { rows: users } = await pool.query(
-    'SELECT email FROM users WHERE id = $1',
-    [userId]
-);
-
-if (users[0]?.email) {
-    await sendEmail({
-        to: users[0].email,
-        subject: title,
-        text: message,
-    });
-}
-
+    // Persist and deliver in-app notifications independently of email. A slow
+    // or unavailable SMTP service must not delay the Socket.IO event/API flow.
     ioInstance?.to(`user:${userId}`).emit('notification', notification);
+
+    void pool.query('SELECT email FROM users WHERE id = $1', [userId])
+        .then(({ rows: users }) => {
+            if (users[0]?.email) {
+                return sendEmail({ to: users[0].email, subject: title, text: message });
+            }
+            return undefined;
+        })
+        .catch((err) => console.error(`Could not queue notification email for user ${userId}:`, err.message));
     return notification;
 }
 
@@ -44,16 +42,18 @@ async function notifyAdmins({ complaintId, type, title, message }) {
 // complaint has no department (classifier couldn't route it) so it still
 // surfaces to someone.
 async function notifyDeptAdmins({ departmentId, complaintId, type, title, message }) {
-    if (departmentId == null) {
-        return notifyAdmins({ complaintId, type, title, message });
-    }
-    const { rows: deptAdmins } = await pool.query(
-        "SELECT id FROM users WHERE role = 'dept_admin' AND department_id = $1",
-        [departmentId]
-    );
-    await Promise.all(
-        deptAdmins.map((admin) => createNotification({ userId: admin.id, complaintId, type, title, message }))
-    );
+    // Notify platform admins as well as the department team so a complaint is
+    // visible in the central admin portal even when no department admin is set up.
+    const { rows: recipients } = departmentId == null
+        ? await pool.query("SELECT id FROM users WHERE role = 'admin'")
+        : await pool.query(
+            `SELECT id FROM users
+             WHERE role = 'admin' OR (role = 'dept_admin' AND department_id = $1)`,
+            [departmentId]
+        );
+    await Promise.all(recipients.map((recipient) =>
+        createNotification({ userId: recipient.id, complaintId, type, title, message })
+    ));
 }
 
 module.exports = { setIO, createNotification, notifyAdmins, notifyDeptAdmins };

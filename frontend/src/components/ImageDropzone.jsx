@@ -12,16 +12,87 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
   const { t } = useLanguage();
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState('');
   const inputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const cameraStreamRef = useRef(null);
   const previewUrlsRef = useRef(new Map());
 
   useEffect(() => {
     const urls = previewUrlsRef.current;
     return () => {
+      cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
       urls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
+
+  useEffect(() => {
+    const currentFiles = new Set(files);
+    for (const [file, url] of previewUrlsRef.current) {
+      if (!currentFiles.has(file)) {
+        URL.revokeObjectURL(url);
+        previewUrlsRef.current.delete(file);
+      }
+    }
+  }, [files]);
+
+  useEffect(() => {
+    if (cameraOpen && videoRef.current && cameraStreamRef.current) {
+      videoRef.current.srcObject = cameraStreamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [cameraOpen]);
+
+  function closeCamera() {
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    cameraStreamRef.current = null;
+    setCameraOpen(false);
+  }
+
+  async function openCamera() {
+    setError('');
+    setCameraError('');
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError(t('Live camera needs HTTPS or localhost and browser camera support. Try the device camera or choose a photo.'));
+      return;
+    }
+    try {
+      cameraStreamRef.current = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: 'environment' } },
+      });
+      setCameraOpen(true);
+    } catch (err) {
+      setCameraError(
+        err.name === 'NotAllowedError'
+          ? t('Camera permission was denied. Allow camera access in your browser settings, or choose a photo.')
+          : t('Could not start the camera. Check that it is connected and not being used by another app.')
+      );
+    }
+  }
+
+  function capturePhoto() {
+    const video = videoRef.current;
+    if (!video?.videoWidth || !video?.videoHeight) {
+      setCameraError(t('Camera is starting. Please wait a moment and try again.'));
+      return;
+    }
+    const scale = Math.min(1, 1920 / video.videoWidth);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setCameraError(t('Could not capture the photo. Please try again.'));
+        return;
+      }
+      addFiles([new File([blob], `civic-photo-${Date.now()}.jpg`, { type: 'image/jpeg' })]);
+      closeCamera();
+    }, 'image/jpeg', 0.88);
+  }
 
   function getPreviewUrl(file) {
     let url = previewUrlsRef.current.get(file);
@@ -108,13 +179,32 @@ export default function ImageDropzone({ files, onChange, maxFiles = 5, disabled 
         <button type="button" disabled={disabled || files.length >= maxFiles} onClick={() => inputRef.current?.click()} className="rounded-md border border-paper-line px-3 py-2 text-xs font-medium text-ink disabled:opacity-50 dark:border-board-line dark:text-paper">
           {t('Choose photos')}
         </button>
-        <button type="button" disabled={disabled || files.length >= maxFiles} onClick={() => cameraInputRef.current?.click()} className="rounded-md border border-paper-line px-3 py-2 text-xs font-medium text-ink disabled:opacity-50 dark:border-board-line dark:text-paper">
+        <button type="button" disabled={disabled || files.length >= maxFiles} onClick={openCamera} className="rounded-md border border-paper-line px-3 py-2 text-xs font-medium text-ink disabled:opacity-50 dark:border-board-line dark:text-paper">
           {t('Use camera')}
         </button>
+        {cameraError && (
+          <button type="button" disabled={disabled || files.length >= maxFiles} onClick={() => cameraInputRef.current?.click()} className="rounded-md border border-paper-line px-3 py-2 text-xs font-medium text-ink disabled:opacity-50 dark:border-board-line dark:text-paper">
+            {t('Open device camera')}
+          </button>
+        )}
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" disabled={disabled} className="hidden" onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ''; }} />
       </div>
 
       {error && <p className="text-xs text-stamp-red mt-2">{error}</p>}
+      {cameraError && <p className="mt-2 text-xs text-stamp-red" role="alert">{cameraError}</p>}
+
+      {cameraOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-label={t('Camera')}>
+          <div className="w-full max-w-2xl rounded-lg bg-white p-4 dark:bg-board">
+            <video ref={videoRef} autoPlay muted playsInline className="max-h-[70vh] w-full rounded-md bg-black object-contain" />
+            {cameraError && <p className="mt-2 text-sm text-stamp-red" role="alert">{cameraError}</p>}
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" onClick={closeCamera} className="rounded-md border border-paper-line px-4 py-2 text-sm dark:border-board-line">{t('Cancel')}</button>
+              <button type="button" onClick={capturePhoto} className="rounded-md bg-civic px-4 py-2 text-sm font-semibold text-white">{t('Capture photo')}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {files.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-3">

@@ -20,7 +20,16 @@ from image_detection import detect_civic_issues
 from translation import prepare_text, translate_text
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
 MODEL_PATH = os.path.join(BASE_DIR, "model.joblib")
+CIVIC_TEXT_CLASSIFIER_PATH = os.getenv(
+    "CIVIC_TEXT_CLASSIFIER_PATH",
+    os.path.join(PROJECT_ROOT, "text_classification", "civic_text_classifier.joblib"),
+)
+CIVIC_TEXT_CLASSES_PATH = os.getenv(
+    "CIVIC_TEXT_CLASSES_PATH",
+    os.path.join(PROJECT_ROOT, "text_classification", "class_labels.json"),
+)
 RESOLUTION_MODEL_PATH = os.path.join(BASE_DIR, "resolution_model.joblib")
 YOLO_MODEL_PATH = os.path.join(BASE_DIR, "yolov8n.pt")
 CUSTOM_CIVIC_MODEL_PATH = os.getenv(
@@ -35,6 +44,35 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Load the bilingual text classifier if present (supports text_classification/ and ai-service/ locations)
+candidate_classifier_paths = [
+    os.getenv("CIVIC_TEXT_CLASSIFIER_PATH"),
+    os.path.join(PROJECT_ROOT, "text_classification", "civic_text_classifier.joblib"),
+    os.path.join(BASE_DIR, "civic_text_classifier.joblib"),
+]
+
+bilingual_text_model = None
+bilingual_model_version = None
+loaded_classifier_path = None
+
+for path in candidate_classifier_paths:
+    if path and os.path.exists(path):
+        try:
+            bilingual_text_model = joblib.load(path)
+            bilingual_model_version = "civic-linear-svc-bilingual-v1"
+            loaded_classifier_path = os.path.abspath(path)
+            print(f"[AI Service] Loaded bilingual text classifier from {loaded_classifier_path} (active: {bilingual_model_version})")
+            break
+        except Exception as exc:
+            print(f"[AI Service] WARNING: Could not load classifier from {path}: {exc}")
+
+if bilingual_text_model is None:
+    print(
+        f"[AI Service] Bilingual classifier artifact not found in candidates: {candidate_classifier_paths}. "
+        "Active text classifier is legacy model (legacy-logistic-regression). "
+        "To generate the bilingual model, run: python text_classification/train_and_evaluate.py"
+    )
 
 model = joblib.load(MODEL_PATH)
 
@@ -87,10 +125,15 @@ class ClassifyRequest(BaseModel):
 
 
 class ClassifyResponse(BaseModel):
-    category: str
-    department: str
-    priority: str
-    confidence: float
+    category: str | None = None
+    department: str | None = None
+    priority: str = "Medium"
+    confidence: float | None = None
+    is_suggestion: bool = True
+    model_version: str = "civic-linear-svc-bilingual-v1"
+    top_margin_score: float | None = None
+    margin_difference: float | None = None
+    scores_note: str | None = None
 
 
 class EmbedRequest(BaseModel):
@@ -236,7 +279,12 @@ SUPPORTED_ISSUE_LABELS = (
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "active_text_classifier": bilingual_model_version if bilingual_text_model is not None else "legacy-logistic-regression",
+        "bilingual_classifier_loaded": bilingual_text_model is not None,
+        "bilingual_model_path": loaded_classifier_path,
+    }
 
 
 @app.post("/prepare-text", response_model=PrepareTextResponse)
@@ -489,20 +537,91 @@ def detect_fake(req: FakeCheckRequest):
 
 @app.post("/classify", response_model=ClassifyResponse)
 def classify(req: ClassifyRequest):
-    probabilities = model.predict_proba([req.text])[0]
-    classes = model.classes_
-    # Filter legacy model outputs so retired departments can never be returned.
-    eligible = [(CATEGORY_ALIASES[name], float(prob)) for name, prob in zip(classes, probabilities) if name in CATEGORY_ALIASES]
-    if not eligible:
-        raise HTTPException(status_code=503, detail="Classifier has no configured department classes; retrain the model.")
-    category, confidence = max(eligible, key=lambda item: item[1])
+    text = (req.text or "").strip()
+    if not text:
+        # Safe fallback for empty or whitespace-only text: do not fabricate department suggestion
+        return ClassifyResponse(
+            category=None,
+            department=None,
+            priority="Medium",
+            confidence=None,
+            is_suggestion=False,
+            model_version="fallback-empty-text",
+            top_margin_score=None,
+            margin_difference=None,
+            scores_note="Empty or whitespace-only text provided; no department suggested.",
+        )
 
-    department = CATEGORY_TO_DEPARTMENT.get(category, category)
-    priority = predict_priority(req.text, category)
+    # 1. Use bilingual text classifier if loaded
+    if bilingual_text_model is not None:
+        try:
+            margins = bilingual_text_model.decision_function([text])[0]
+            classes = list(bilingual_text_model.classes_)
+            ranked_indices = np.argsort(margins)[::-1]
+            top_idx = ranked_indices[0]
+            second_idx = ranked_indices[1] if len(ranked_indices) > 1 else None
 
+            raw_cat = classes[top_idx]
+            category = CATEGORY_ALIASES.get(raw_cat, raw_cat)
+            department = CATEGORY_TO_DEPARTMENT.get(category, category)
+            priority = predict_priority(text, category)
+
+            top_margin = float(margins[top_idx])
+            margin_diff = (
+                float(margins[top_idx] - margins[second_idx])
+                if second_idx is not None
+                else None
+            )
+
+            print(f"[AI Service] Classified via {bilingual_model_version}: category='{category}', top_margin={top_margin:.3f}")
+            return ClassifyResponse(
+                category=category,
+                department=department,
+                priority=priority,
+                confidence=None,  # LinearSVC output is uncalibrated margin distance, not a probability
+                is_suggestion=True,
+                model_version=bilingual_model_version or "civic-linear-svc-bilingual-v1",
+                top_margin_score=round(top_margin, 4),
+                margin_difference=round(margin_diff, 4) if margin_diff is not None else None,
+                scores_note="Raw uncalibrated decision margin distances from separating hyperplanes — not probabilities. AI department suggestion for staff review.",
+            )
+        except Exception as e:
+            print(f"[AI Service] WARNING: Bilingual text classifier prediction error: {e}. Falling back to legacy model.")
+
+    # 2. Legacy model fallback
+    try:
+        probabilities = model.predict_proba([text])[0]
+        classes = model.classes_
+        eligible = [(CATEGORY_ALIASES[name], float(prob)) for name, prob in zip(classes, probabilities) if name in CATEGORY_ALIASES]
+        if eligible:
+            category, confidence = max(eligible, key=lambda item: item[1])
+            department = CATEGORY_TO_DEPARTMENT.get(category, category)
+            priority = predict_priority(text, category)
+            print(f"[AI Service] Classified via legacy-logistic-regression: category='{category}', confidence={confidence:.3f}")
+            return ClassifyResponse(
+                category=category,
+                department=department,
+                priority=priority,
+                confidence=round(confidence, 4),
+                is_suggestion=True,
+                model_version="legacy-logistic-regression",
+                top_margin_score=None,
+                margin_difference=None,
+                scores_note="Legacy model fallback with probability estimate.",
+            )
+    except Exception as e:
+        print(f"[AI Service] ERROR: Legacy classifier also failed: {e}. Falling back to unassigned.")
+
+    # 3. Safe unassigned fallback: do not fabricate department suggestion
+    print("[AI Service] Classifier unavailable; returning unassigned fallback.")
     return ClassifyResponse(
-        category=category,
-        department=department,
-        priority=priority,
-        confidence=round(confidence, 4),
+        category=None,
+        department=None,
+        priority="Medium",
+        confidence=None,
+        is_suggestion=False,
+        model_version="fallback-unavailable",
+        top_margin_score=None,
+        margin_difference=None,
+        scores_note="Classifier unavailable; complaint left unassigned for manual staff routing.",
     )
